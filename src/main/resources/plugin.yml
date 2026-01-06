@@ -1,0 +1,10 @@
+name: MultiversePlugin
+version: 1.0.0
+main: org.gabooj.PluginManager
+description: A plugin used to manage worlds across a MC server.
+author: gaboojie
+api-version: '1.21'
+commands:
+  world:
+    description: Manage worlds
+    usage: /world <create|list|details|status|policy|world_name>
