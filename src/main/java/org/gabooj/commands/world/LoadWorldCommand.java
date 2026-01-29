@@ -1,21 +1,21 @@
-package org.gabooj.commands;
+package org.gabooj.commands.world;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.gabooj.WorldManager;
-import org.gabooj.WorldMeta;
+import org.gabooj.commands.SubCommand;
+import org.gabooj.worlds.WorldManager;
+import org.gabooj.worlds.WorldMeta;
 
-import java.util.Collection;
 import java.util.List;
 
 public class LoadWorldCommand implements SubCommand {
 
     private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final CommandHandler commandHandler;
+    private final WorldCommandHandler commandHandler;
 
-    public LoadWorldCommand(JavaPlugin plugin, WorldManager worldManager, CommandHandler commandHandler) {
+    public LoadWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
         this.plugin = plugin;
         this.worldManager = worldManager;
         this.commandHandler = commandHandler;
@@ -49,37 +49,36 @@ public class LoadWorldCommand implements SubCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         // Get world
-        Collection<WorldMeta> worlds = worldManager.worlds.values();
-        WorldMeta worldToUse = null;
-        for (WorldMeta meta : worlds) {
-            if (meta.worldName.equalsIgnoreCase(args[0])) {
-                worldToUse = meta;
-                break;
-            }
-        }
+        WorldMeta meta = worldManager.getWorldMetaByID(args[0]);
 
         // No world found
-        if (worldToUse == null) {
+        if (meta == null) {
             sender.sendMessage(ChatColor.RED + args[0] + " is not the name of a created world.");
             return;
         }
 
         // Raise error if trying to load base world
-        if (worldToUse.isBaseWorld) {
+        if (meta.isBaseWorld()) {
             sender.sendMessage(ChatColor.DARK_RED + "The base world is always loaded!");
             return;
         }
 
-        boolean didWorldLoad = worldManager.loadWorld(worldToUse);
+        // Raise error if already loaded
+        if (meta.isLoaded()) {
+            sender.sendMessage(ChatColor.RED + "This world is already loaded!");
+            return;
+        }
+
+        boolean didWorldLoad = worldManager.loadWorldFromMetaData(meta);
         if (didWorldLoad) {
-            sender.sendMessage(ChatColor.GOLD + "Successfully loaded world: '" + worldToUse.worldName + "'.");
+            sender.sendMessage(ChatColor.GOLD + "Successfully loaded world: '" + meta.getWorldID() + "'.");
         } else {
-            sender.sendMessage(ChatColor.RED + "Uh-oh! Could not load world: '" + worldToUse.worldName + "'.");
+            sender.sendMessage(ChatColor.RED + "Uh-oh! Could not load world: '" + meta.getWorldID() + "'!");
         }
     }
 
     @Override
     public List<String> tabComplete(CommandSender sender, String[] args) {
-        return worldManager.getWorldNames();
+        return worldManager.getWorldIDs();
     }
 }

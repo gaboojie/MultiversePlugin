@@ -1,4 +1,4 @@
-package org.gabooj.commands;
+package org.gabooj.commands.world;
 
 import org.bukkit.*;
 import org.bukkit.command.Command;
@@ -7,13 +7,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.gabooj.WorldManager;
+import org.gabooj.commands.SubCommand;
+import org.gabooj.worlds.WorldManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class CommandHandler implements CommandExecutor, TabCompleter {
+public class WorldCommandHandler implements CommandExecutor, TabCompleter {
 
     private final JavaPlugin plugin;
     private final WorldManager worldManager;
@@ -22,7 +23,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
     public final List<String> plebSubCommandNames = new ArrayList<>();
     public final Map<String, SubCommand> commands = new HashMap<>();
 
-    public CommandHandler(JavaPlugin plugin, WorldManager worldManager) {
+    public WorldCommandHandler(JavaPlugin plugin, WorldManager worldManager) {
         this.plugin = plugin;
         this.worldManager = worldManager;
         registerCommands();
@@ -36,12 +37,13 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         register(new ListWorldsCommand(plugin, worldManager, this));
         register(new StatusCommand(plugin, worldManager, this));
         register(new DetailsCommand(plugin, worldManager, this));
-        register(new PolicyCommand(plugin, worldManager, this));
+        register(new ConfigWorldCommand(plugin, worldManager, this));
         register(new DeleteWorldCommand(plugin, worldManager, this));
         register(new LoadWorldCommand(plugin, worldManager, this));
         register(new UnloadWorldCommand(plugin, worldManager, this));
         register(new TeleportWorldCommand(plugin, worldManager, this));
         register(new ImportWorldCommand(plugin, worldManager, this));
+        register(new PlayerInfoWorldCommand(plugin, worldManager, this));
     }
 
     public void register(SubCommand command) {

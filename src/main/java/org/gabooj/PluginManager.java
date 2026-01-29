@@ -1,11 +1,16 @@
 package org.gabooj;
 
 import org.bukkit.plugin.java.JavaPlugin;
-import org.gabooj.commands.CommandHandler;
+import org.gabooj.commands.group.GroupCommandHandler;
+import org.gabooj.commands.warp.WarpCommandHandler;
+import org.gabooj.commands.world.WorldCommandHandler;
+import org.gabooj.worlds.WorldManager;
 
 public class PluginManager extends JavaPlugin {
 
-    public CommandHandler commandHandler;
+    public WorldCommandHandler worldCommandHandler;
+    public GroupCommandHandler groupCommandHandler;
+    public WarpCommandHandler warpCommandHandler;
     public WorldManager worldManager;
 
     @Override
@@ -15,7 +20,9 @@ public class PluginManager extends JavaPlugin {
         worldManager.onEnable();
 
         // Register commands
-        commandHandler = new CommandHandler(this, worldManager);
+        worldCommandHandler = new WorldCommandHandler(this, worldManager);
+        groupCommandHandler = new GroupCommandHandler(this, worldManager);
+        warpCommandHandler = new WarpCommandHandler(this, worldManager);
     }
 
     @Override

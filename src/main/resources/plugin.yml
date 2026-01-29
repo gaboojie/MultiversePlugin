@@ -8,3 +8,9 @@ commands:
   world:
     description: Manage worlds
     usage: /world <create|list|details|status|policy|world_name>
+  group:
+    description: Manage world groups
+    usage: /group <create|add|remove|delete|list>
+  warp:
+    description: Manage warp locations per world group
+    usage: /warp <warp name|list|create|delete>

@@ -1,21 +1,21 @@
-package org.gabooj.commands;
+package org.gabooj.commands.world;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.gabooj.WorldManager;
-import org.gabooj.WorldMeta;
+import org.gabooj.commands.SubCommand;
+import org.gabooj.worlds.WorldManager;
+import org.gabooj.worlds.WorldMeta;
 
-import java.util.Collection;
 import java.util.List;
 
 public class DetailsCommand implements SubCommand {
 
     private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final CommandHandler commandHandler;
+    private final WorldCommandHandler commandHandler;
 
-    public DetailsCommand(JavaPlugin plugin, WorldManager worldManager, CommandHandler commandHandler) {
+    public DetailsCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
         this.plugin = plugin;
         this.worldManager = worldManager;
         this.commandHandler = commandHandler;
@@ -48,27 +48,20 @@ public class DetailsCommand implements SubCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        Collection<WorldMeta> worlds = worldManager.worlds.values();
-        WorldMeta worldToUse = null;
-        for (WorldMeta meta : worlds) {
-            if (meta.worldName.equalsIgnoreCase(args[0])) {
-                worldToUse = meta;
-                break;
-            }
-        }
+        WorldMeta meta = worldManager.getWorldMetaByID(args[0]);
 
         // No world found
-        if (worldToUse == null) {
-            sender.sendMessage(ChatColor.RED + args[0] + " is not the name of a created world.");
+        if (meta == null) {
+            sender.sendMessage(ChatColor.RED + args[0] + " is not the name of a world.");
             return;
         }
 
         // Show details about world
-        sender.sendMessage(ChatColor.GOLD + worldToUse.toString());
+        sender.sendMessage(ChatColor.GOLD + meta.toString(worldManager));
     }
 
     @Override
     public List<String> tabComplete(CommandSender sender, String[] args) {
-        return worldManager.getWorldNames();
+        return worldManager.getWorldIDs();
     }
 }

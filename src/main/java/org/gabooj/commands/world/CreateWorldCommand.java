@@ -1,12 +1,16 @@
-package org.gabooj.commands;
+package org.gabooj.commands.world;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldType;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.gabooj.WorldManager;
-import org.gabooj.WorldMeta;
+import org.gabooj.commands.SubCommand;
+import org.gabooj.scope.ScopeMeta;
+import org.gabooj.scope.SpawnLocation;
+import org.gabooj.worlds.WorldManager;
+import org.gabooj.worlds.WorldMeta;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -17,7 +21,7 @@ public class CreateWorldCommand implements SubCommand {
 
     private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final CommandHandler commandHandler;
+    private final WorldCommandHandler commandHandler;
 
     public enum CreateFlag {
         ENV("-env", "-e", List.of("NORMAL", "NETHER", "END")),
@@ -52,7 +56,18 @@ public class CreateWorldCommand implements SubCommand {
         }
     }
 
-    public CreateWorldCommand(JavaPlugin plugin, WorldManager worldManager, CommandHandler commandHandler) {
+    public class FlagArguments {
+
+        public World.Environment environment = World.Environment.NORMAL;
+        public WorldType worldType = WorldType.NORMAL;
+        public WorldMeta.GeneratorType generatorType = WorldMeta.GeneratorType.VANILLA;
+        public boolean doStructures = true;
+        public long seed = 0;
+
+        public FlagArguments() {}
+    }
+
+    public CreateWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
         this.plugin = plugin;
         this.worldManager = worldManager;
         this.commandHandler = commandHandler;
@@ -97,18 +112,12 @@ public class CreateWorldCommand implements SubCommand {
         String worldID = args[0];
 
         // Ensure that world ID does not already exist
-        if (worldManager.doesWorldIDExist(worldID)) {
-            sender.sendMessage(ChatColor.RED + "You cannot create world '" + worldID + "' as that world ID is already taken!");
+        if (worldManager.isInvalidName(worldID)) {
+            sender.sendMessage(ChatColor.RED + "You cannot create world '" + worldID + "' as that world ID is already taken with another world or group!");
             return;
         }
 
-        // Ensure that world name does not already exist
-        if (worldManager.doesWorldNameExist(worldID)) {
-            sender.sendMessage(ChatColor.RED + "You cannot create world '" + worldID + "' as that world name is already taken!");
-            return;
-        }
-
-        // Ensure that world name is not a command
+        // Ensure that world ID is not a command
         for (String command : commandHandler.commands.keySet()) {
             if (command.equalsIgnoreCase(worldID)) {
                 sender.sendMessage(ChatColor.RED + "You cannot create world '" + worldID + "' as that world name is a command under /world.");
@@ -122,35 +131,41 @@ public class CreateWorldCommand implements SubCommand {
             return;
         }
 
-        // Create default world
-        WorldMeta meta = new WorldMeta(false, worldID);
-
         // Parse flags
+        FlagArguments flagArguments = new FlagArguments();
         try {
-            parseFlags(meta, args, 1);
+            parseFlags(flagArguments, args, 1);
         } catch (IllegalArgumentException e) {
             sender.sendMessage(ChatColor.RED + e.getMessage());
             return;
         }
 
         // If invalid types specified, let the player know and quit
-        if (meta.environment != World.Environment.NORMAL && meta.type != WorldType.NORMAL) {
+        if (flagArguments.environment != World.Environment.NORMAL && flagArguments.worldType != WorldType.NORMAL) {
             sender.sendMessage(ChatColor.RED + "You can only specify a NORMAL world type with a different environment (i.e END/NETHER).");
             return;
         }
-        if (meta.generator == WorldMeta.GeneratorType.VOID && meta.type != WorldType.NORMAL) {
+        if (flagArguments.generatorType == WorldMeta.GeneratorType.VOID && flagArguments.worldType != WorldType.NORMAL) {
             sender.sendMessage(ChatColor.RED + "You can only specify a NORMAL world type with a void generator (i.e. not AMPLIFIED/LARGE BIOMES/FLAT).");
             return;
         }
 
+        // Create meta data
+        WorldMeta meta = new WorldMeta(
+             false, worldID, flagArguments.environment, flagArguments.worldType, flagArguments.seed, flagArguments.doStructures
+        );
+        meta.setGeneratorType(flagArguments.generatorType);
+
         // Create new world
-        worldManager.worlds.put(meta.worldID, meta);
-        boolean didWorldLoad = worldManager.loadWorld(meta);
+        boolean didWorldLoad = worldManager.loadWorldFromMetaData(meta);
         if (didWorldLoad) {
             sender.sendMessage(ChatColor.GOLD + "Successfully created new world: " + worldID + ".");
+            worldManager.worldMetas.put(worldID, meta);
+
+            // Create new scope for this world
+            worldManager.scopeManager.createScope(worldID);
         } else {
-            sender.sendMessage(ChatColor.RED + "Uh-oh! Could not create new world: '" + meta.worldID + "'.");
-            worldManager.worlds.remove(meta.worldID);
+            sender.sendMessage(ChatColor.RED + "Uh-oh! Could not create new world: '" + meta.getWorldID() + "'.");
         }
     }
 
@@ -178,7 +193,7 @@ public class CreateWorldCommand implements SubCommand {
         return Arrays.stream(CreateFlag.values()).filter(f -> !used.contains(f)).map(CreateFlag::getKey).toList();
     }
 
-    public void parseFlags(WorldMeta meta, String[] args, int startIndex) {
+    public void parseFlags(FlagArguments flagArguments, String[] args, int startIndex) {
         for (int i = startIndex; i < args.length; i++) {
             String rawFlag = args[i];
 
@@ -199,34 +214,34 @@ public class CreateWorldCommand implements SubCommand {
             switch (flag) {
                 case ENV -> {
                     switch (value.toUpperCase()) {
-                        case "END" -> meta.environment = World.Environment.THE_END;
-                        case "NETHER" -> meta.environment = World.Environment.NETHER;
-                        case "NORMAL" -> meta.environment = World.Environment.NORMAL;
+                        case "END" -> flagArguments.environment = World.Environment.THE_END;
+                        case "NETHER" -> flagArguments.environment = World.Environment.NETHER;
+                        case "NORMAL" -> flagArguments.environment = World.Environment.NORMAL;
                         default -> throw new IllegalArgumentException("Could not interpret environment value: " + value);
                     }
                 }
                 case TYPE -> {
                     try {
-                        meta.type = WorldType.valueOf(value.toUpperCase());
+                        flagArguments.worldType = WorldType.valueOf(value.toUpperCase());
                     } catch (IllegalArgumentException e) {
                         throw new IllegalArgumentException("Could not interpret world type value: " + value);
                     }
                 }
                 case GENERATOR -> {
                     try {
-                        meta.generator = WorldMeta.GeneratorType.valueOf(value.toUpperCase());
+                        flagArguments.generatorType = WorldMeta.GeneratorType.valueOf(value.toUpperCase());
                     } catch (IllegalArgumentException e) {
                         throw new IllegalArgumentException("Could not interpret generator value: " + value);
                     }
                 }
                 case SEED -> {
                     try {
-                        meta.seed = Long.parseLong(value);
+                        flagArguments.seed = Long.parseLong(value);
                     } catch (NumberFormatException e) {
                         throw new IllegalArgumentException("Seed must be a number");
                     }
                 }
-                case STRUCTURES -> meta.generateStructures = Boolean.parseBoolean(value);
+                case STRUCTURES -> flagArguments.doStructures = Boolean.parseBoolean(value);
                 default -> throw new IllegalArgumentException("Unknown flag: " + flag + ", so no world was created.");
             }
         }

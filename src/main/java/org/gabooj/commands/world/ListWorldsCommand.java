@@ -1,10 +1,14 @@
-package org.gabooj.commands;
+package org.gabooj.commands.world;
 
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.gabooj.WorldManager;
-import org.gabooj.WorldMeta;
+import org.gabooj.commands.SubCommand;
+import org.gabooj.scope.ScopeMeta;
+import org.gabooj.worlds.WorldManager;
+import org.gabooj.worlds.WorldMeta;
 
 import java.util.Collection;
 import java.util.List;
@@ -13,9 +17,9 @@ public class ListWorldsCommand implements SubCommand {
 
     private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final CommandHandler commandHandler;
+    private final WorldCommandHandler commandHandler;
 
-    public ListWorldsCommand(JavaPlugin plugin, WorldManager worldManager, CommandHandler commandHandler) {
+    public ListWorldsCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
         this.plugin = plugin;
         this.worldManager = worldManager;
         this.commandHandler = commandHandler;
@@ -52,26 +56,33 @@ public class ListWorldsCommand implements SubCommand {
     }
 
     public String getFormattedWorldList(CommandSender sender) {
-        Collection<WorldMeta> worlds = worldManager.worlds.values();
-        if (worlds.isEmpty()) {
+        Collection<ScopeMeta> scopes = worldManager.scopeManager.getScopes().values();
+
+        // Add player world if possible
+        String worldText = "";
+        if (sender instanceof Player player) {
+            WorldMeta meta = worldManager.getWorldMetaByID(player.getWorld().getName());
+            ScopeMeta scopeMeta = worldManager.scopeManager.getScopeForWorldMeta(meta);
+            if (meta != null) worldText += "You are in world: " + scopeMeta.getName();
+        }
+
+        if (scopes.isEmpty()) {
             return "There are no worlds available right now.";
         } else {
             StringBuilder info = new StringBuilder("Worlds:");
-            for (WorldMeta meta : worlds) {
-                String toAppend = "";
-                if (!meta.visible) {
-                    toAppend = " [INVISIBLE]";
-                    if (!sender.isOp()) {
-                        continue;
-                    }
+            for (ScopeMeta meta : scopes) {
+                if (sender.isOp() || meta.isVisible()) {
+                    String toAppend = "";
+                    if (!meta.isVisible()) toAppend = " [INVISIBLE]";
+                    info.append(" ").append(meta.getName()).append(toAppend).append(",");
                 }
-
-                info.append(" ").append(meta.worldName).append(toAppend).append(",");
             }
             // Remove trailing comma
             if (info.charAt(info.length()-1) == ',') {
                 info.deleteCharAt(info.length()-1);
             }
+            // Add worldText
+            info.append("\n").append(worldText);
             return info.toString();
         }
     }
