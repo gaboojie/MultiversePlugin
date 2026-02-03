@@ -1,6 +1,5 @@
 package org.gabooj.commands.world;
 
-import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -8,6 +7,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,17 +33,17 @@ public class WorldCommandHandler implements CommandExecutor, TabCompleter {
         plugin.getCommand("world").setExecutor(this);
 
         // Register commands
-        register(new CreateWorldCommand(plugin, worldManager, this));
-        register(new ListWorldsCommand(plugin, worldManager, this));
-        register(new StatusCommand(plugin, worldManager, this));
-        register(new DetailsCommand(plugin, worldManager, this));
-        register(new ConfigWorldCommand(plugin, worldManager, this));
-        register(new DeleteWorldCommand(plugin, worldManager, this));
-        register(new LoadWorldCommand(plugin, worldManager, this));
-        register(new UnloadWorldCommand(plugin, worldManager, this));
-        register(new TeleportWorldCommand(plugin, worldManager, this));
-        register(new ImportWorldCommand(plugin, worldManager, this));
-        register(new PlayerInfoWorldCommand(plugin, worldManager, this));
+        register(new CreateWorldCommand(worldManager, this));
+        register(new ListWorldsCommand(worldManager));
+        register(new StatusCommand(worldManager));
+        register(new DetailsCommand(worldManager));
+        register(new ConfigWorldCommand(worldManager));
+        register(new DeleteWorldCommand(worldManager));
+        register(new LoadWorldCommand(worldManager));
+        register(new UnloadWorldCommand(worldManager));
+        register(new TeleportWorldCommand(worldManager));
+        register(new ImportWorldCommand(worldManager, this));
+        register(new PlayerInfoWorldCommand(plugin, worldManager));
     }
 
     public void register(SubCommand command) {
@@ -88,25 +88,25 @@ public class WorldCommandHandler implements CommandExecutor, TabCompleter {
 
         // If no command matches, inform the player
         if (sub == null) {
-            sender.sendMessage(ChatColor.RED + args[0] + " was not a recognized subcommand. Use /world to see a list of available commands.");
+            Messager.sendWarningMessage(sender, args[0] + " was not a recognized subcommand. Use /world to see a list of available commands.");
             return true;
         }
 
         // Check if command requires admin permissions
         if (sub.needsOp() && !sender.isOp()) {
-            sender.sendMessage(ChatColor.RED + "You must be an admin to execute this command.");
+            Messager.sendWarningMessage(sender, "You must be an admin to execute this command.");
             return true;
         }
 
         // Check if command sender needs to be a player
         if (sub.needsToBePlayer() && !(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "You must be a player to execute this command!");
+            Messager.sendWarningMessage(sender, "You must be a player to execute this command!");
             return true;
         }
 
         // Send description if not enough information given
         if (args.length == 1) {
-            sender.sendMessage(ChatColor.GOLD + sub.description(sender));
+            Messager.sendInfoMessage(sender, sub.description(sender));
             return true;
         }
 
@@ -127,7 +127,7 @@ public class WorldCommandHandler implements CommandExecutor, TabCompleter {
             opInfo = new StringBuilder(opInfo.substring(0, opInfo.length() - 2));
             opInfo.append(".");
 
-            sender.sendMessage(ChatColor.GOLD + opInfo.toString());
+            Messager.sendInfoMessage(sender, opInfo.toString());
         } else {
             String info = """
                     A command to handle teleportation across worlds.
@@ -135,7 +135,7 @@ public class WorldCommandHandler implements CommandExecutor, TabCompleter {
                     Use '/world list' to view a list of worlds.
                     Use '/world status' to view the status of each world.
                     """;
-            sender.sendMessage(ChatColor.GOLD + info);
+            Messager.sendInfoMessage(sender, info);
         }
     }
 }

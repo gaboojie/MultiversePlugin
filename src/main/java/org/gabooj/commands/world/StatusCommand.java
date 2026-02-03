@@ -1,26 +1,20 @@
 package org.gabooj.commands.world;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
 import org.gabooj.scope.ScopeMeta;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
-import java.util.Collection;
 import java.util.List;
 
 public class StatusCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final WorldCommandHandler commandHandler;
 
-    public StatusCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public StatusCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -50,7 +44,7 @@ public class StatusCommand implements SubCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        sender.sendMessage(ChatColor.GOLD + getStatusOfWorlds(sender));
+        Messager.sendInfoMessage(sender, getStatusOfWorlds(sender));
     }
 
     public String getStatusOfWorlds(CommandSender sender) {

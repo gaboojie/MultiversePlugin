@@ -1,9 +1,8 @@
 package org.gabooj.commands.world;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -11,14 +10,10 @@ import java.util.List;
 
 public class LoadWorldCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final WorldCommandHandler commandHandler;
 
-    public LoadWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public LoadWorldCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -53,27 +48,33 @@ public class LoadWorldCommand implements SubCommand {
 
         // No world found
         if (meta == null) {
-            sender.sendMessage(ChatColor.RED + args[0] + " is not the name of a created world.");
+            Messager.sendWarningMessage(sender, args[0] + " is not the name of a created world.");
             return;
         }
 
         // Raise error if trying to load base world
         if (meta.isBaseWorld()) {
-            sender.sendMessage(ChatColor.DARK_RED + "The base world is always loaded!");
+            Messager.sendSevereWarningMessage(sender, "The base world is always loaded!");
+            return;
+        }
+
+        // Raise error if being unloaded
+        if (meta.isUnloading) {
+            Messager.sendWarningMessage(sender, "That world is currently being unloaded!");
             return;
         }
 
         // Raise error if already loaded
         if (meta.isLoaded()) {
-            sender.sendMessage(ChatColor.RED + "This world is already loaded!");
+            Messager.sendWarningMessage(sender, "This world is already loaded!");
             return;
         }
 
         boolean didWorldLoad = worldManager.loadWorldFromMetaData(meta);
         if (didWorldLoad) {
-            sender.sendMessage(ChatColor.GOLD + "Successfully loaded world: '" + meta.getWorldID() + "'.");
+            Messager.sendSuccessMessage(sender, "Successfully loaded world: '" + meta.getWorldID() + "'.");
         } else {
-            sender.sendMessage(ChatColor.RED + "Uh-oh! Could not load world: '" + meta.getWorldID() + "'!");
+            Messager.sendWarningMessage(sender, "Uh-oh! Could not load world: '" + meta.getWorldID() + "'!");
         }
     }
 

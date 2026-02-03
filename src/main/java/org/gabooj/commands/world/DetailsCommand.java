@@ -1,9 +1,8 @@
 package org.gabooj.commands.world;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -11,14 +10,10 @@ import java.util.List;
 
 public class DetailsCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final WorldCommandHandler commandHandler;
 
-    public DetailsCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public DetailsCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -52,12 +47,12 @@ public class DetailsCommand implements SubCommand {
 
         // No world found
         if (meta == null) {
-            sender.sendMessage(ChatColor.RED + args[0] + " is not the name of a world.");
+            Messager.sendWarningMessage(sender, args[0] + " is not the name of a world.");
             return;
         }
 
         // Show details about world
-        sender.sendMessage(ChatColor.GOLD + meta.toString(worldManager));
+        Messager.sendInfoMessage(sender, meta.toString(worldManager));
     }
 
     @Override

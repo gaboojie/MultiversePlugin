@@ -1,82 +1,107 @@
 package org.gabooj.commands.chat;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.entity.Player;
 import org.gabooj.commands.SubCommand;
-import org.gabooj.commands.group.GroupCommandHandler;
-import org.gabooj.scope.ScopeMeta;
-import org.gabooj.worlds.WorldManager;
-import org.gabooj.worlds.WorldMeta;
+import org.gabooj.players.PlayerTabManager;
+import org.gabooj.players.chat.ChatManager;
+import org.gabooj.players.chat.ChatSettings;
+import org.gabooj.utils.Messager;
 
 import java.util.List;
-import java.util.Set;
 
-public class SetChatCommand implements SubCommand {
-
-    private final JavaPlugin plugin;
-    private final WorldManager worldManager;
-    private final ChatCommandHandler commandHandler;
-
-    public SetChatCommand(JavaPlugin plugin, WorldManager worldManager, ChatCommandHandler commandHandler) {
-        this.plugin = plugin;
-        this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
-    }
+public class NickCommand implements SubCommand {
 
     @Override
     public String name() {
-        return "list";
+        return "nick";
     }
 
     @Override
     public List<String> aliases() {
-        return List.of();
+        return List.of("nickname");
     }
 
     @Override
     public boolean needsOp() {
-        return true;
-    }
-
-    @Override
-    public boolean needsToBePlayer() {
         return false;
     }
 
     @Override
+    public boolean needsToBePlayer() {
+        return true;
+    }
+
+    @Override
     public String description(CommandSender sender) {
-        List<String> groups = worldManager.scopeManager.getAllGroupNames();
-
-        if (groups.isEmpty()) {
-            return "No groups have been created yet.";
-        }
-
-        String msg = "Groups:\n";
-
-        for (ScopeMeta scopeMeta : worldManager.scopeManager.getScopes().values()) {
-            Set<WorldMeta> worldMetas = scopeMeta.getWorlds();
-            if (worldMetas.isEmpty()) {
-                msg += "- Group '" + scopeMeta.getScopeId() + "' has no worlds.\n";
-            } else {
-                String groupMsg = "- Group '" + scopeMeta.getName() + "' has worlds: ";
-                for (WorldMeta worldMeta : worldMetas) {
-                    groupMsg += worldMeta.getWorldID() + ", ";
-                }
-                groupMsg = groupMsg.substring(0, groupMsg.length()-2);
-                msg += groupMsg + "\n";
-            }
-        }
-        return msg;
+        return """
+                A command to set your nickname using '/chat nick <nickname>'.
+                - Your nick will be reverted if any online or offline player has that name/nickname.
+                - Your nick can only be alphanumeric with underscores.
+                - Your nick must be between 3 to 16 characters long.
+                - Type something in chat to see your current nickname!
+                """;
     }
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        sender.sendMessage(ChatColor.GOLD + description(sender));
+        Player player = (Player) sender;
+        String nick = args[0];
+
+        // Check if alphanumeric
+        if (!isAlphanumericOrUnderscore(nick) ) {
+            Messager.sendWarningMessage(sender, "Your nickname must be alphanumeric (but can also include an underscore)!");
+            return;
+        }
+
+        // Check if incorrect size
+        if (isIncorrectSize(nick)) {
+            Messager.sendWarningMessage(sender, "Your nickname must be between 3 to 16 characters long!");
+            return;
+        }
+
+        // Check if nick is already the player's nickname
+        ChatSettings playerSettings = ChatManager.getOrCreateChatSettings(player);
+        if (playerSettings.nickname.equalsIgnoreCase(nick)) {
+            Messager.sendWarningMessage(sender, "Your nickname is already: " + playerSettings.nickname + "!");
+            return;
+        }
+
+        // Check if player is trying to reset their nickname to their default name
+        if (ChatManager.isPlayerName(nick, player)) {
+            Messager.sendSuccessMessage(sender, "Reset your nickname to your default name.");
+            playerSettings.nickname = player.getName();
+            return;
+        }
+
+        // Check if it coincides with any online or offline player's name or nickname
+        if (ChatManager.isNicknameAlreadyTaken(nick)) {
+            Messager.sendWarningMessage(sender, "The nickname: '" + nick + "' is already taken as a name or nickname by another player!");
+            return;
+        }
+
+        Messager.sendSuccessMessage(sender, "Set your nickname to: " + nick + ".");
+        playerSettings.nickname = nick;
+        PlayerTabManager.updatePlayerTab(player);
+    }
+
+    public boolean isAlphanumericOrUnderscore(String s) {
+        if (s == null || s.isEmpty()) return false;
+
+        for (char c : s.toCharArray()) {
+            if (!(Character.isLetterOrDigit(c) || c == '_')) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean isIncorrectSize(String s) {
+        return s.length() < 3 || s.length() > 16;
     }
 
     @Override
     public List<String> tabComplete(CommandSender sender, String[] args) {
-        return List.of();
+        return List.of("<nickname>");
     }
 }

@@ -5,6 +5,9 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.gabooj.utils.Messager;
+
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.io.File;
 import java.io.IOException;
@@ -98,7 +101,7 @@ public final class WorldSerialization {
             if (!file.getParentFile().exists()) file.getParentFile().mkdirs();
             config.save(file);
         } catch (IOException e) {
-            plugin.getServer().broadcastMessage("Could not save world file: worlds.yml");
+            Messager.broadcastMessage(plugin.getServer(), "Could not save world file: worlds.yml", NamedTextColor.DARK_RED);
             e.printStackTrace();
         }
     }

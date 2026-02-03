@@ -1,6 +1,5 @@
 package org.gabooj.scope;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Difficulty;
 import org.bukkit.GameMode;
 import org.bukkit.World;

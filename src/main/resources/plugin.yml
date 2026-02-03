@@ -14,3 +14,12 @@ commands:
   warp:
     description: Manage warp locations per world group
     usage: /warp <warp name|list|create|delete>
+  chat:
+    description: Manage chat settings
+    usage: /chat <color|format|nick|prefix|suffix>
+  afk:
+    description: Manage afk status
+    usage: /afk
+  tpa:
+    description: Request teleportation to another player
+    usage: /tpa <player|accept|deny> [name]

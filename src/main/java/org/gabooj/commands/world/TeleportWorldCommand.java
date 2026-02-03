@@ -1,11 +1,10 @@
 package org.gabooj.commands.world;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
 import org.gabooj.scope.ScopeMeta;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -13,14 +12,10 @@ import java.util.List;
 
 public class TeleportWorldCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final WorldCommandHandler commandHandler;
 
-    public TeleportWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public TeleportWorldCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -52,7 +47,7 @@ public class TeleportWorldCommand implements SubCommand {
     public void execute(CommandSender sender, String[] args) {
         // Ensure that sender is player
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + "You must be a player to execute this command!");
+            Messager.sendWarningMessage(sender, "You must be a player to execute this command!");
             return;
         }
 
@@ -61,21 +56,26 @@ public class TeleportWorldCommand implements SubCommand {
 
             // Ensure that player is OP if manually teleporting to world
             if (!player.isOp()) {
-                player.sendMessage(ChatColor.RED + "You must be an admin to manually teleport to a world using the -i/--ignoreGroup flag!");
+                Messager.sendWarningMessage(player, "You must be an admin to manually teleport to a world using the -i/--ignoreGroup flag!");
                 return;
             }
 
             // Parse flags
             String ignoreFlag = args[1];
             if (!ignoreFlag.equalsIgnoreCase("-i") && !ignoreFlag.equalsIgnoreCase("--ignoreGroup")) {
-                player.sendMessage(ChatColor.RED + "Unknown flag: " + ignoreFlag + ". Use -i or --ignoreGroup to ignore the default group teleport location.");
+                Messager.sendWarningMessage(player, "Unknown flag: " + ignoreFlag + ". Use -i or --ignoreGroup to ignore the default group teleport location.");
                 return;
             }
 
             // Verify if world exists
             WorldMeta meta = worldManager.getWorldMetaByID(args[0]);
             if (meta == null) {
-                player.sendMessage(ChatColor.RED + "World '" + args[0] + "' does not exist!");
+                Messager.sendWarningMessage(player, "World '" + args[0] + "' does not exist!");
+                return;
+            }
+
+            if (meta.isUnloading) {
+                Messager.sendWarningMessage(player, "World '" + args[0] + "' is currently being unloaded!");
                 return;
             }
 
@@ -87,7 +87,7 @@ public class TeleportWorldCommand implements SubCommand {
             // Verify if scope exists
             ScopeMeta scopeMeta = worldManager.scopeManager.getScopeByName(args[0]);
             if (scopeMeta == null) {
-                player.sendMessage(ChatColor.RED + "Group '" + args[0] + "' does not exist!");
+                Messager.sendWarningMessage(sender, "Group '" + args[0] + "' does not exist!");
                 return;
             }
 

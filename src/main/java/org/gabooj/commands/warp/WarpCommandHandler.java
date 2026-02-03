@@ -1,6 +1,5 @@
 package org.gabooj.commands.warp;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -8,6 +7,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,10 +31,10 @@ public class WarpCommandHandler implements CommandExecutor, TabCompleter {
     public void registerCommands() {
         plugin.getCommand("warp").setExecutor(this);
 
-        register(new CreateWarpCommand(plugin, worldManager, this));
-        register(new DeleteWarpCommand(plugin, worldManager, this));
-        register(new ListWarpComand(plugin, worldManager, this));
-        register(new TeleportWarpCommand(plugin, worldManager, this));
+        register(new CreateWarpCommand(worldManager, this));
+        register(new DeleteWarpCommand(worldManager));
+        register(new ListWarpComand(worldManager));
+        register(new TeleportWarpCommand(worldManager));
     }
 
     public void register(SubCommand command) {
@@ -48,7 +48,7 @@ public class WarpCommandHandler implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
         if (!sender.isOp()) {
-            sender.sendMessage(ChatColor.RED + "You must be an admin to execute this command.");
+            Messager.sendWarningMessage(sender, "You must be an admin to execute this command.");
             return true;
         }
 
@@ -62,19 +62,19 @@ public class WarpCommandHandler implements CommandExecutor, TabCompleter {
 
         // If no command matches, inform the player
         if (sub == null) {
-            sender.sendMessage(ChatColor.RED + args[0] + " was not a recognized subcommand. Use /warp to see a list of available commands.");
+            Messager.sendWarningMessage(sender, args[0] + " was not a recognized subcommand. Use /warp to see a list of available commands.");
             return true;
         }
 
         // Check if command sender needs to be a player
         if (sub.needsToBePlayer() && !(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "You must be a player to execute this command!");
+            Messager.sendWarningMessage(sender, "You must be a player to execute this command!");
             return true;
         }
 
         // Send description if not enough information given
         if (args.length == 1) {
-            sender.sendMessage(ChatColor.GOLD + sub.description(sender));
+            Messager.sendInfoMessage(sender, sub.description(sender));
             return true;
         }
 
@@ -106,14 +106,14 @@ public class WarpCommandHandler implements CommandExecutor, TabCompleter {
                 Use '/warp list' to list all warps in your current world group.
                 Use '/warp teleport <warp name>' to teleport to a given warp.
                 """;
-            sender.sendMessage(ChatColor.GOLD + msg);
+            Messager.sendInfoMessage(sender, msg);
         } else {
             String msg = """
                 A command to teleport to warp locations in your current world.
                 Use '/warp list' to list all warps.
                 Use '/warp teleport <warp name>' to teleport to a given warp.
                 """;
-            sender.sendMessage(ChatColor.GOLD + msg);
+            Messager.sendInfoMessage(sender, msg);
         }
     }
 }

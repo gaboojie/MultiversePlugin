@@ -1,6 +1,5 @@
 package org.gabooj.commands.group;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -8,6 +7,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,13 +31,13 @@ public class GroupCommandHandler implements CommandExecutor, TabCompleter  {
     public void registerCommands() {
         plugin.getCommand("group").setExecutor(this);
 
-        register(new CreateGroupCommand(plugin, worldManager, this));
-        register(new AddGroupCommand(plugin, worldManager, this));
-        register(new RemoveGroupCommand(plugin, worldManager, this));
-        register(new DeleteGroupCommand(plugin, worldManager, this));
-        register(new ListGroupCommand(plugin, worldManager, this));
-        register(new ConfigGroupCommand(plugin, worldManager, this));
-        register(new GameRuleConfigCommand(plugin, worldManager, this));
+        register(new CreateGroupCommand(worldManager));
+        register(new AddGroupCommand(worldManager));
+        register(new RemoveGroupCommand(worldManager));
+        register(new DeleteGroupCommand(worldManager));
+        register(new ListGroupCommand(worldManager));
+        register(new ConfigGroupCommand(worldManager));
+        register(new GameRuleConfigCommand(worldManager));
     }
 
     public void register(SubCommand command) {
@@ -51,7 +51,7 @@ public class GroupCommandHandler implements CommandExecutor, TabCompleter  {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
         if (!sender.isOp()) {
-            sender.sendMessage(ChatColor.RED + "You must be an admin to execute this command.");
+            Messager.sendWarningMessage(sender, "You must be an admin to execute this command.");
             return true;
         }
 
@@ -65,19 +65,19 @@ public class GroupCommandHandler implements CommandExecutor, TabCompleter  {
 
         // If no command matches, inform the player
         if (sub == null) {
-            sender.sendMessage(ChatColor.RED + args[0] + " was not a recognized subcommand. Use /group to see a list of available commands.");
+            Messager.sendWarningMessage(sender, args[0] + " was not a recognized subcommand. Use /group to see a list of available commands.");
             return true;
         }
 
         // Check if command sender needs to be a player
         if (sub.needsToBePlayer() && !(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "You must be a player to execute this command!");
+            Messager.sendWarningMessage(sender, "You must be a player to execute this command!");
             return true;
         }
 
         // Send description if not enough information given
         if (args.length == 1) {
-            sender.sendMessage(ChatColor.GOLD + sub.description(sender));
+            Messager.sendInfoMessage(sender, sub.description(sender));
             return true;
         }
 
@@ -109,6 +109,6 @@ public class GroupCommandHandler implements CommandExecutor, TabCompleter  {
                 - Use '/group delete <group name>' to delete a group.
                 - Use '/group list' to list all groups and their worlds.
                 """;
-        sender.sendMessage(ChatColor.GOLD + msg);
+        Messager.sendInfoMessage(sender, msg);
     }
 }

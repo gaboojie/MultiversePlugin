@@ -2,11 +2,11 @@ package org.gabooj.scope;
 
 import com.destroystokyo.paper.event.player.PlayerPostRespawnEvent;
 import com.destroystokyo.paper.event.player.PlayerSetSpawnEvent;
-import io.papermc.paper.event.entity.EntityMoveEvent;
+
+import net.kyori.adventure.text.format.NamedTextColor;
+
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -22,12 +22,12 @@ import org.gabooj.players.PlayerInventorySerializer;
 import org.gabooj.players.PlayerLocationSerializer;
 import org.gabooj.players.PlayerMiscSerializer;
 import org.gabooj.players.PlayerTabManager;
+import org.gabooj.players.afk.AfkManager;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class ScopeListener implements Listener {
 
@@ -61,7 +61,7 @@ public class ScopeListener implements Listener {
             for (NamespacedKey key : keys) {
                 container.remove(key);
             }
-            player.sendMessage(ChatColor.DARK_RED + "An admin requested that your PDC world data be cleared when you were offline. Data was just cleared.");
+            Messager.sendSevereWarningMessage(player, "An admin requested that your PDC world data be cleared when you were offline. Data was just cleared.");
         }
 
         // Handle teleport & persist player state
@@ -94,7 +94,7 @@ public class ScopeListener implements Listener {
         if (!player.isDead()) scopeManager.savePlayerStateInScope(player, player.getLocation(), meta);
 
         // Remove player UUID
-        PlayerTabManager.removePlayer(player);
+        AfkManager.removePlayer(player);
     }
 
     // PLAYER DEATH & RESPAWN CYCLE
@@ -107,6 +107,7 @@ public class ScopeListener implements Listener {
 
         // Handle keep inventory
         GameRule<?> rule = GameRuleConfigCommand.getGameRuleByName("keep_inventory");
+        @SuppressWarnings("unchecked")
         Boolean keepInv = (rule != null && rule.getType() == Boolean.class) ? player.getWorld().getGameRuleValue((GameRule<Boolean>) rule) : false;
         if (Boolean.FALSE.equals(keepInv)) {
             // Clear inventory state if keepInv is off
@@ -139,7 +140,7 @@ public class ScopeListener implements Listener {
         if (loc != null) {
             event.setRespawnLocation(loc);
         } else {
-            plugin.getServer().broadcastMessage("SEVERE ERROR: Server could not find proper respawn location!");
+            Messager.broadcastMessage(plugin.getServer(), "SEVERE ERROR: Server could not find proper respawn location!", NamedTextColor.DARK_RED);
         }
     }
 
@@ -152,7 +153,7 @@ public class ScopeListener implements Listener {
 
         // Load player data
         scopeManager.applyScopeToPlayer(player, scope);
-        PlayerTabManager.updatePlayer(player, worldManager);
+        PlayerTabManager.updatePlayerTab(player);
     }
 
     // PORTAL LOGIC
@@ -169,9 +170,9 @@ public class ScopeListener implements Listener {
         Location vanillaTarget = event.getTo();
         World.Environment targetEnv = vanillaTarget.getWorld().getEnvironment();
         WorldMeta targetWorldMeta = scope.getWorldMetaByEnvironment(targetEnv);
-        if (targetWorldMeta == null) {
+        if (targetWorldMeta == null || targetWorldMeta.isUnloading) {
             event.setCancelled(true);
-            player.sendMessage(ChatColor.RED + "This dimension is not available.");
+            Messager.sendWarningMessage(player, "This dimension is not available.");
             return;
         }
 
@@ -181,7 +182,7 @@ public class ScopeListener implements Listener {
             boolean didLoad = worldManager.loadWorldFromMetaData(targetWorldMeta);
             if (!didLoad) {
                 event.setCancelled(true);
-                player.sendMessage(ChatColor.RED + "Uh-oh! The dimension could not be loaded. Please contact an administrator.");
+                Messager.sendWarningMessage(player, "Uh-oh! The dimension could not be loaded. Please contact an administrator.");
                 return;
             }
             targetWorld = targetWorldMeta.getWorld();
@@ -199,7 +200,7 @@ public class ScopeListener implements Listener {
 
         // Set the target location — vanilla will handle portal linking/creation
         event.setTo(redirected);
-        PlayerTabManager.updatePlayer(event.getPlayer(), scope, targetWorldMeta, worldManager);
+        PlayerTabManager.updatePlayerTab(event.getPlayer(), scope, targetWorldMeta);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -217,7 +218,7 @@ public class ScopeListener implements Listener {
         ScopeMeta scope = worldManager.scopeManager.getScopeForWorld(fromWorld);
         World.Environment targetEnv = event.getTo().getWorld().getEnvironment();
         WorldMeta targetWorldMeta = scope.getWorldMetaByEnvironment(targetEnv);
-        if (targetWorldMeta == null) {
+        if (targetWorldMeta == null || targetWorldMeta.isUnloading) {
             event.setCancelled(true);
             return;
         }
@@ -255,20 +256,20 @@ public class ScopeListener implements Listener {
         Player player = event.getPlayer();
         if (event.getCause() != PlayerSetSpawnEvent.Cause.BED) {
             if (event.getCause() == PlayerSetSpawnEvent.Cause.RESPAWN_ANCHOR)
-                player.sendMessage(ChatColor.RED + "Your spawn can only be set by beds!");
+                Messager.sendWarningMessage(player, "Your spawn can only be set by beds!");
             return;
         }
 
         // Get clicked bed block via Ray Casting
         Block clickedBlock = player.getTargetBlockExact(5);
         if (clickedBlock == null || !(Tag.BEDS.isTagged(clickedBlock.getType()))) {
-            player.sendMessage(ChatColor.RED + "For some reason, your bed spawn could not be saved!");
+            Messager.sendWarningMessage(player, "For some reason, your bed spawn could not be saved!");
             return;
         }
 
         // Save bed location
         ScopeMeta scopeMeta = worldManager.scopeManager.getScopeForWorld(player.getWorld());
         PlayerMiscSerializer.savePlayerBedLocInScope(player, clickedBlock.getLocation(), scopeMeta, plugin);
-        player.sendMessage(ChatColor.GOLD + "Saved your spawn in '" + scopeMeta.getName() + "' world.");
+        Messager.sendInfoMessage(player, "Saved your spawn in '" + scopeMeta.getName() + "' world.");
     }
 }

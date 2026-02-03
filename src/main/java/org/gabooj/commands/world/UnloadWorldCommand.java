@@ -1,9 +1,8 @@
 package org.gabooj.commands.world;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -11,14 +10,10 @@ import java.util.List;
 
 public class UnloadWorldCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final WorldCommandHandler commandHandler;
 
-    public UnloadWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public UnloadWorldCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -53,13 +48,13 @@ public class UnloadWorldCommand implements SubCommand {
 
         // No world found
         if (meta == null) {
-            sender.sendMessage(ChatColor.RED + args[0] + " is not the name of a world.");
+            Messager.sendWarningMessage(sender, args[0] + " is not the name of a world.");
             return;
         }
 
         // Raise error if trying to unload base world
         if (meta.isBaseWorld()) {
-            sender.sendMessage(ChatColor.DARK_RED + "You CANNOT unload the base world.");
+            Messager.sendSevereWarningMessage(sender, "You CANNOT unload the base world.");
             return;
         }
 
@@ -67,22 +62,34 @@ public class UnloadWorldCommand implements SubCommand {
         WorldMeta defaultWorldMeta = worldManager.getDefaultScopeWorld();
         if (defaultWorldMeta != null) {
             if (meta.getWorldID().equalsIgnoreCase(defaultWorldMeta.getWorldID())) {
-                sender.sendMessage(ChatColor.DARK_RED + "The default world must always be loaded!");
+                Messager.sendSevereWarningMessage(sender, "The default world must always be loaded!");
                 return;
             }
         }
 
-        if (!meta.isLoaded()) {
-            sender.sendMessage(ChatColor.RED + "That world is already unloaded!");
+        // Cannot unload an unloading world
+        if (meta.isUnloading) {
+            Messager.sendWarningMessage(sender, "That world is already being unloaded!");
             return;
         }
 
-        boolean didWorldUnload = worldManager.unloadWorld(meta);
-        if (didWorldUnload) {
-            sender.sendMessage(ChatColor.GOLD + "Successfully unloaded world: '" + meta.getWorldID() + "'.\n Please do not load this world within the next 10 seconds.");
-        } else {
-            sender.sendMessage(ChatColor.RED + "Uh-oh! Could not unload world: '" + meta.getWorldID() + "'.");
+        // Cannot unload an unloaded world
+        if (!meta.isLoaded()) {
+            Messager.sendWarningMessage(sender, "That world is already unloaded!");
+            return;
         }
+
+        // Cannot unload a world with players in it
+        if (!meta.getWorld().getPlayers().isEmpty()) {
+            Messager.sendWarningMessage(sender, "You cannot unload a world if there are players in it!");
+            return;
+        }
+
+        // Try to unload world
+        Messager.sendInfoMessage(sender, "Attempting to unload: '" + meta.getWorldID() + "' world...");
+        Runnable onSuccess = () -> Messager.sendSuccessMessage(sender, "Successfully unloaded world: '" + meta.getWorldID() + "'.");
+        Runnable onFailure = () -> Messager.sendWarningMessage(sender, "Uh-oh! Could not unload world: '" + meta.getWorldID() + "'.");
+        worldManager.unloadWorld(meta, onSuccess, onFailure);
     }
 
     @Override

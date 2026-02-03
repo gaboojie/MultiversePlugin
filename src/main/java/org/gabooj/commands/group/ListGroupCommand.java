@@ -1,27 +1,21 @@
 package org.gabooj.commands.group;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
 import org.gabooj.scope.ScopeMeta;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class ListGroupCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final GroupCommandHandler commandHandler;
 
-    public ListGroupCommand(JavaPlugin plugin, WorldManager worldManager, GroupCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public ListGroupCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -72,7 +66,7 @@ public class ListGroupCommand implements SubCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        sender.sendMessage(ChatColor.GOLD + description(sender));
+        Messager.sendInfoMessage(sender, description(sender));
     }
 
     @Override

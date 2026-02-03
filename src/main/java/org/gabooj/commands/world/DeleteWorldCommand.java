@@ -1,12 +1,10 @@
 package org.gabooj.commands.world;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
 import org.gabooj.scope.ScopeMeta;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -18,14 +16,10 @@ import java.util.List;
 
 public class DeleteWorldCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final WorldCommandHandler commandHandler;
 
-    public DeleteWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public DeleteWorldCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -60,22 +54,20 @@ public class DeleteWorldCommand implements SubCommand {
 
         // No world found
         if (meta == null) {
-            sender.sendMessage(ChatColor.RED + args[0] + " is not the name of a created world.");
+            Messager.sendWarningMessage(sender, args[0] + " is not the name of a created world.");
+            return;
+        }
+
+        // Unload world before deleting
+        if (meta.isLoaded()) {
+            Messager.sendWarningMessage(sender, "The world must be unloaded before you can delete it!");
             return;
         }
 
         // Raise error if trying to delete base world
         if (meta.isBaseWorld()) {
-            sender.sendMessage(ChatColor.DARK_RED + "You CANNOT delete the base world.");
+            Messager.sendSevereWarningMessage(sender, "You CANNOT delete the base world.");
             return;
-        }
-
-        // Ensure that player is not trying to delete any world that they are currently in
-        if (sender instanceof Player player) {
-            if (player.getWorld().getName().equals(meta.getWorldID())) {
-                sender.sendMessage(ChatColor.DARK_RED + "You CANNOT delete a world you are currently in!");
-                return;
-            }
         }
 
         // Raise error if trying to delete the default world spawn
@@ -83,18 +75,15 @@ public class DeleteWorldCommand implements SubCommand {
         if (defaultScopeID != null) {
             ScopeMeta defaultScopeMeta = worldManager.scopeManager.getScopeByID(defaultScopeID);
             if (defaultScopeMeta != null && defaultScopeMeta.getSpawnLocation().spawnWorldID != null && defaultScopeMeta.getSpawnLocation().spawnWorldID.equals(meta.getWorldID())) {
-                sender.sendMessage(ChatColor.RED + "You cannot delete a world that is set as the default server spawn! Change the spawn location and then delete the world!");
+                Messager.sendWarningMessage(sender, "You cannot delete a world that is set as the default server spawn! Change the spawn location and then delete the world!");
                 return;
             }
         }
 
-        // Unload world before deleting
-        if (meta.isLoaded()) {
-            boolean didWorldUnload = worldManager.unloadWorld(meta);
-            if (!didWorldUnload) {
-                sender.sendMessage(ChatColor.RED + "Uh-oh! For some reason the world could not be unloaded, so the world was not deleted.");
-                return;
-            }
+        // If world unloading, do not delete
+        if (meta.isUnloading) {
+            Messager.sendWarningMessage(sender, "The world is currently being unloaded, so you cannot delete it (yet)!");
+            return;
         }
 
         // Delete folder and contents
@@ -110,11 +99,11 @@ public class DeleteWorldCommand implements SubCommand {
                         try {
                             Files.delete(path);
                         } catch (IOException e) {
-                            sender.sendMessage(ChatColor.RED + "For some reason, there was an IO exception in trying to delete the files in the folder. Aborting...");
+                            Messager.sendWarningMessage(sender, "For some reason, there was an IO exception in trying to delete the files in the folder. Aborting...");
                         }
                     });
         } catch (Exception e) {
-            sender.sendMessage(ChatColor.RED + "For some reason, there was an IO exception in trying to delete the files in the folder. Aborting...");
+            Messager.sendWarningMessage(sender, "For some reason, there was an IO exception in trying to delete the files in the folder. Aborting...");
             return;
         }
 
@@ -140,7 +129,7 @@ public class DeleteWorldCommand implements SubCommand {
             worldManager.scopeManager.saveScopes();
         }
 
-        sender.sendMessage(ChatColor.GOLD + "Successfully deleted world.");
+        Messager.sendSuccessMessage(sender, "Successfully deleted world.");
         worldManager.worldMetas.remove(meta.getWorldID());
         worldManager.saveWorldMetaDatas();
     }

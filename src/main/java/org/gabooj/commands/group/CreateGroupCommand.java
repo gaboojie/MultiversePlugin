@@ -1,23 +1,18 @@
 package org.gabooj.commands.group;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 
 import java.util.List;
 
 public class CreateGroupCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final GroupCommandHandler commandHandler;
 
-    public CreateGroupCommand(JavaPlugin plugin, WorldManager worldManager, GroupCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public CreateGroupCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -50,12 +45,12 @@ public class CreateGroupCommand implements SubCommand {
         String groupName = args[0].toLowerCase();
 
         if (worldManager.isInvalidName(groupName)) {
-            sender.sendMessage(ChatColor.RED + "That group name cannot exist as it is the same name as a world's ID, group ID, or group name!");
+            Messager.sendWarningMessage(sender, "That group name cannot exist as it is the same name as a world's ID, group ID, or group name!");
             return;
         }
         worldManager.scopeManager.createScope(groupName);
         worldManager.scopeManager.saveScopes();
-        sender.sendMessage(ChatColor.GOLD + "Created new group: " + groupName + ".");
+        Messager.sendInfoMessage(sender, "Created new group: " + groupName + ".");
     }
 
     @Override

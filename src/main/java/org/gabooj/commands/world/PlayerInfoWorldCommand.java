@@ -1,7 +1,6 @@
 package org.gabooj.commands.world;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -11,6 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
 import org.gabooj.players.PlayerLocationSerializer;
 import org.gabooj.scope.ScopeMeta;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 
 import java.util.HashSet;
@@ -23,14 +23,12 @@ public class PlayerInfoWorldCommand implements SubCommand {
 
     private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final WorldCommandHandler commandHandler;
 
     public static Set<UUID> pendingPlayerClear = ConcurrentHashMap.newKeySet();
 
-    public PlayerInfoWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
+    public PlayerInfoWorldCommand(JavaPlugin plugin, WorldManager worldManager) {
         this.plugin = plugin;
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -61,14 +59,14 @@ public class PlayerInfoWorldCommand implements SubCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length == 1) {
-            sender.sendMessage(ChatColor.RED + "Use /world playerInfo <get/clear> <player name>.");
+            Messager.sendWarningMessage(sender, "Use /world playerInfo <get/clear> <player name>.");
             return;
         }
 
         String playerName = args[1];
         OfflinePlayer player = Bukkit.getOfflinePlayer(playerName);
         if (player.getName() == null || (!player.hasPlayedBefore() && !player.isOnline())) {
-            sender.sendMessage(ChatColor.RED + "No (online or offline) players by the name: '" + playerName + "' exist!");
+            Messager.sendWarningMessage(sender, "No (online or offline) players by the name: '" + playerName + "' exist!");
             return;
         }
 
@@ -78,7 +76,7 @@ public class PlayerInfoWorldCommand implements SubCommand {
         } else if(action.equalsIgnoreCase("clear")) {
             clearInfo(sender, player);
         } else {
-            sender.sendMessage(ChatColor.RED + action + " was not a recognized subcommand. Your subcommand must be 'get' or 'clear'.");
+            Messager.sendWarningMessage(sender, action + " was not a recognized subcommand. Your subcommand must be 'get' or 'clear'.");
         }
     }
 
@@ -93,15 +91,15 @@ public class PlayerInfoWorldCommand implements SubCommand {
                 container.remove(key);
             }
 
-            sender.sendMessage(ChatColor.GOLD + "Cleared all persistent world data from the player.");
+            Messager.sendSuccessMessage(sender, "Cleared all persistent world data from the player.");
         } else {
             pendingPlayerClear.add(offlinePlayer.getUniqueId());
-            sender.sendMessage(ChatColor.GOLD + "Player is offline. Data will be cleared on next login (if no restarts occur).");
+            Messager.sendSuccessMessage(sender, "Player is offline. Data will be cleared on next login (if no restarts occur).");
         }
     }
 
     public void sendGetInfoToSender(CommandSender sender, OfflinePlayer player) {
-        String msg = ChatColor.GOLD + "";
+        String msg = "";
 
         ScopeMeta scopeMeta = PlayerLocationSerializer.getLastOfflinePlayerScope(player, worldManager);
         if (scopeMeta != null) {
@@ -116,7 +114,7 @@ public class PlayerInfoWorldCommand implements SubCommand {
             msg += "- Scope '" + scopeMetaInstance.getScopeId() + "' has last world: '" + worldID + "'\n";
         }
 
-        sender.sendMessage(msg);
+        Messager.sendInfoMessage(sender, msg);
     }
 
     @Override

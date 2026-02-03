@@ -1,9 +1,8 @@
 package org.gabooj.commands.world;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -11,9 +10,7 @@ import java.util.*;
 
 public class ConfigWorldCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final WorldCommandHandler commandHandler;
 
     public enum WorldConfigPolicy {
 
@@ -38,10 +35,8 @@ public class ConfigWorldCommand implements SubCommand {
         }
     }
 
-    public ConfigWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public ConfigWorldCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -72,14 +67,14 @@ public class ConfigWorldCommand implements SubCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + description(sender));
+            Messager.sendInfoMessage(sender, description(sender));
             return;
         }
 
         // Parse world
         String worldID = args[1];
         if (!worldManager.doesWorldIDExist(worldID)) {
-            sender.sendMessage(ChatColor.RED + "No world with ID: '" + worldID + "' exists!");
+            Messager.sendWarningMessage(sender, "No world with ID: '" + worldID + "' exists!");
             return;
         }
         WorldMeta meta = worldManager.getWorldMetaByID(worldID);
@@ -87,7 +82,7 @@ public class ConfigWorldCommand implements SubCommand {
         // Parse config name
         String configName = args[2];
         if (WorldConfigPolicy.fromName(configName) == null) {
-            sender.sendMessage(ChatColor.RED + "No config with name: '" + configName + "' exists!");
+            Messager.sendWarningMessage(sender, "No config with name: '" + configName + "' exists!");
             return;
         }
 
@@ -97,23 +92,22 @@ public class ConfigWorldCommand implements SubCommand {
             handleGetCommand(sender, meta, configName);
         } else if(action.equalsIgnoreCase("set")) {
             if (args.length < 4) {
-                sender.sendMessage(ChatColor.RED + "You must specify a value for your config name!");
+                Messager.sendWarningMessage(sender, "You must specify a value for your config name!");
                 return;
             }
             String configValue = args[3];
             handleSetCommand(sender, meta, configName, configValue);
         } else {
-            sender.sendMessage(ChatColor.RED + action + " was not a recognized subcommand. Your subcommand must be 'get' or 'set'.");
+            Messager.sendWarningMessage(sender, action + " was not a recognized subcommand. Your subcommand must be 'get' or 'set'.");
         }
     }
 
     public void handleGetCommand(CommandSender sender, WorldMeta meta, String configName) {
         if (configName.equalsIgnoreCase(WorldConfigPolicy.AUTOLOAD.name)) {
             boolean doAutoLoad = meta.doAutoLoad();
-            String msg = ChatColor.GOLD + "DoAutoLoad for world: '" + meta.getWorldID() + "' is set to " + doAutoLoad + ".";
-            sender.sendMessage(msg);
+            Messager.sendInfoMessage(sender, "DoAutoLoad for world: '" + meta.getWorldID() + "' is set to " + doAutoLoad + ".");
         } else {
-            sender.sendMessage(ChatColor.RED + configName + " was not a recognized config name!");
+            Messager.sendWarningMessage(sender, configName + " was not a recognized config name!");
         }
     }
 
@@ -123,25 +117,24 @@ public class ConfigWorldCommand implements SubCommand {
             WorldMeta defaultWorldMeta = worldManager.getDefaultScopeWorld();
             if (defaultWorldMeta != null) {
                 if (meta.getWorldID().equalsIgnoreCase(defaultWorldMeta.getWorldID())) {
-                    sender.sendMessage(ChatColor.RED + "The default scope's world must always be loaded, so you cannot set it's autoload value!");
+                    Messager.sendWarningMessage(sender, "The default scope's world must always be loaded, so you cannot set it's autoload value!");
                     return;
                 }
             }
 
             // Handle base world autoload
             if (meta.isBaseWorld()) {
-                sender.sendMessage(ChatColor.DARK_RED + "All base worlds are always loaded, so you cannot set it's autoload value!");
+                Messager.sendSevereWarningMessage(sender, "All base worlds are always loaded, so you cannot set it's autoload value!");
                 return;
             }
 
             // Update value
             boolean doAutoLoad = Boolean.parseBoolean(newValue);
             meta.setDoAutoLoad(doAutoLoad);
-            String msg = ChatColor.GOLD + "DoAutoLoad for world: '" + meta.getWorldID() + "' is now set to " + doAutoLoad + ".";
-            sender.sendMessage(msg);
+            Messager.sendSuccessMessage(sender, "DoAutoLoad for world: '" + meta.getWorldID() + "' is now set to " + doAutoLoad + ".");
             worldManager.saveWorldMetaDatas();
         } else {
-            sender.sendMessage(ChatColor.RED + configName + " was not a recognized config name!");
+            Messager.sendWarningMessage(sender, configName + " was not a recognized config name!");
         }
     }
 

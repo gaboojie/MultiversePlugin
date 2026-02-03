@@ -1,26 +1,21 @@
 package org.gabooj.commands.warp;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
 import org.gabooj.scope.ScopeMeta;
 import org.gabooj.scope.Warp;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 
 import java.util.List;
 
 public class DeleteWarpCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final WarpCommandHandler commandHandler;
 
-    public DeleteWarpCommand(JavaPlugin plugin, WorldManager worldManager, WarpCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public DeleteWarpCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -54,14 +49,14 @@ public class DeleteWarpCommand implements SubCommand {
 
         // Handle not enough arguments
         if (args.length < 2) {
-            player.sendMessage(ChatColor.GOLD + description(sender));
+            Messager.sendInfoMessage(player, description(sender));
             return;
         }
 
         // Ensure that the group exists
         String groupName = args[0].toLowerCase();
         if (!worldManager.scopeManager.doesScopeNameExist(groupName)) {
-            sender.sendMessage(ChatColor.RED + "That group does not exist!");
+            Messager.sendWarningMessage(player, "That group does not exist!");
             return;
         }
         ScopeMeta scopeMeta = worldManager.scopeManager.getScopeByName(groupName);
@@ -70,14 +65,14 @@ public class DeleteWarpCommand implements SubCommand {
         String warpName = args[1].toLowerCase();
         Warp warp = scopeMeta.getWarpByName(warpName);
         if (warp == null) {
-            sender.sendMessage(ChatColor.RED + "No warp with name: '" + warpName + "' exists!");
+            Messager.sendWarningMessage(player, "No warp with name: '" + warpName + "' exists!");
             return;
         }
 
         // Delete warp
         scopeMeta.warps.remove(warp);
         worldManager.scopeManager.saveScopes();
-        player.sendMessage(ChatColor.GOLD + "Successfully removed warp: '" + warpName + "' in group: " + scopeMeta.getName() + ".");
+        Messager.sendSuccessMessage(player, "Successfully removed warp: '" + warpName + "' in group: " + scopeMeta.getName() + ".");
     }
 
     @Override

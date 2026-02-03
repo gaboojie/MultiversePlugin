@@ -1,26 +1,22 @@
 package org.gabooj.commands.warp;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
-import org.gabooj.commands.group.GroupCommandHandler;
 import org.gabooj.scope.ScopeMeta;
 import org.gabooj.scope.Warp;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 
 import java.util.List;
 
 public class CreateWarpCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
     private final WarpCommandHandler commandHandler;
 
-    public CreateWarpCommand(JavaPlugin plugin, WorldManager worldManager, WarpCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public CreateWarpCommand(WorldManager worldManager, WarpCommandHandler commandHandler) {
         this.worldManager = worldManager;
         this.commandHandler = commandHandler;
     }
@@ -60,13 +56,13 @@ public class CreateWarpCommand implements SubCommand {
         // Handle warp already exists
         String warpName = args[0].toLowerCase();
         if (scopeMeta.doesWarpExist(warpName)) {
-            player.sendMessage(ChatColor.RED + "A warp with name: '" + warpName + "' already exists!");
+            Messager.sendWarningMessage(player, "A warp with name: '" + warpName + "' already exists!");
             return;
         }
 
         // Handle command already exists
         if(commandHandler.commands.containsKey(warpName)) {
-            player.sendMessage(ChatColor.RED + "That is already a name of a warp command!");
+            Messager.sendWarningMessage(player, "That is already a name of a warp command!");
             return;
         }
 
@@ -75,7 +71,7 @@ public class CreateWarpCommand implements SubCommand {
         Warp warp = new Warp(warpName, loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), loc.getWorld().getName());
         scopeMeta.warps.add(warp);
         worldManager.scopeManager.saveScopes();
-        player.sendMessage(ChatColor.GOLD + "Successfully created warp: '" + warpName + "' at your location in group: " + scopeMeta.getName() + ".");
+        Messager.sendSuccessMessage(sender, "Successfully created warp: '" + warpName + "' at your location in group: " + scopeMeta.getName() + ".");
     }
 
     @Override

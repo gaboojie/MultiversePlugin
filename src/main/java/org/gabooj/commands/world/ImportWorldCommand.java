@@ -2,8 +2,8 @@ package org.gabooj.commands.world;
 
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -12,12 +12,10 @@ import java.util.List;
 
 public class ImportWorldCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
     private final WorldCommandHandler commandHandler;
 
-    public ImportWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public ImportWorldCommand(WorldManager worldManager, WorldCommandHandler commandHandler) {
         this.worldManager = worldManager;
         this.commandHandler = commandHandler;
     }
@@ -53,20 +51,20 @@ public class ImportWorldCommand implements SubCommand {
 
         // Check to see if world folder actually exists
         if (!worldManager.doesWorldFileExist(worldFolderName)) {
-            sender.sendMessage(ChatColor.RED + "No world folder could be found that exactly matches the name: '" + worldFolderName + "'.");
+            Messager.sendWarningMessage(sender, "No world folder could be found that exactly matches the name: '" + worldFolderName + "'.");
             return;
         }
 
         // Ensure that world ID does not already exist
         if (worldManager.isInvalidName(worldFolderName)) {
-            sender.sendMessage(ChatColor.RED + "You cannot import world '" + worldFolderName + "' as that name is already taken by a group or world!");
+            Messager.sendWarningMessage(sender, "You cannot import world '" + worldFolderName + "' as that name is already taken by a group or world!");
             return;
         }
 
         // Ensure that world ID is not a command
         for (String command : commandHandler.commands.keySet()) {
             if (command.equalsIgnoreCase(worldFolderName)) {
-                sender.sendMessage(ChatColor.RED + "You cannot import world '" + worldFolderName + "' as that world's ID is a command under /world.");
+                Messager.sendWarningMessage(sender, "You cannot import world '" + worldFolderName + "' as that world's ID is a command under /world.");
                 return;
             }
         }
@@ -75,7 +73,7 @@ public class ImportWorldCommand implements SubCommand {
         File worldFolder = new File(Bukkit.getServer().getWorldContainer(), worldFolderName);
         File levelDat = new File(worldFolder, "level.dat");
         if (!levelDat.exists()) {
-            sender.sendMessage(ChatColor.RED + "You cannot import the world, because it doesn't contain world data (level.dat)!");
+            Messager.sendWarningMessage(sender, "You cannot import the world, because it doesn't contain world data (level.dat)!");
             return;
         }
 
@@ -83,7 +81,7 @@ public class ImportWorldCommand implements SubCommand {
         WorldCreator creator = new WorldCreator(worldFolderName);
         World world = creator.createWorld();
         if (world == null) {
-            sender.sendMessage(ChatColor.RED + "The server could not import world '" + worldFolderName + "' and cannot provide a good reason why!");
+            Messager.sendWarningMessage(sender, "The server could not import world '" + worldFolderName + "' and cannot provide a good reason why!");
             return;
         }
 
@@ -94,11 +92,12 @@ public class ImportWorldCommand implements SubCommand {
             if (type.equalsIgnoreCase("void")) {
                 generatorType = WorldMeta.GeneratorType.VOID;
             } else if (!type.equalsIgnoreCase("vanilla")) {
-                sender.sendMessage(ChatColor.RED + "You must specify a generator type of VOID or VANILLA to import this world!");
+                Messager.sendWarningMessage(sender, "You must specify a generator type of VOID or VANILLA to import this world!");
                 return;
             }
         }
 
+        @SuppressWarnings("deprecation")
         WorldMeta meta = new WorldMeta(
                 false, worldFolderName, world.getEnvironment(), world.getWorldType(), world.getSeed(), world.canGenerateStructures()
         );
@@ -109,7 +108,7 @@ public class ImportWorldCommand implements SubCommand {
         worldManager.worldMetas.put(meta.getWorldID(), meta);
         worldManager.saveWorldMetaDatas();
         worldManager.scopeManager.createScope(meta.getWorldID());
-        sender.sendMessage(ChatColor.GOLD + "Successfully imported world.");
+        Messager.sendInfoMessage(sender, "Successfully imported world.");
     }
 
     @Override

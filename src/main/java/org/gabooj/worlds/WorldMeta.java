@@ -1,16 +1,8 @@
 package org.gabooj.worlds;
 
 import org.bukkit.*;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.gabooj.scope.ScopeMeta;
 import org.gabooj.scope.SpawnLocation;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 public class WorldMeta {
@@ -38,6 +30,7 @@ public class WorldMeta {
     private String scopeID;
     private boolean doAutoLoad = false;
     private GeneratorType generatorType;
+    public boolean isUnloading;
 
     public WorldMeta(boolean isBaseWorld, String worldID, World.Environment environment, WorldType worldType, long seed, boolean generateStructures) {
         this.isBaseWorld = isBaseWorld;

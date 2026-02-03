@@ -2,11 +2,13 @@ package org.gabooj.commands.group;
 
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
+import net.kyori.adventure.text.format.NamedTextColor;
+
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
 import org.gabooj.scope.ScopeMeta;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -16,14 +18,10 @@ import java.util.Set;
 
 public class GameRuleConfigCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final GroupCommandHandler commandHandler;
 
-    public GameRuleConfigCommand(JavaPlugin plugin, WorldManager worldManager, GroupCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public GameRuleConfigCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -59,14 +57,14 @@ public class GameRuleConfigCommand implements SubCommand {
     public void execute(CommandSender sender, String[] args) {
         // Handle too little args
         if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + description(sender));
+            Messager.sendInfoMessage(sender, description(sender));
             return;
         }
 
         // Parse group
         String groupName = args[1];
         if (!worldManager.scopeManager.doesScopeNameExist(groupName)) {
-            sender.sendMessage(ChatColor.RED + "No group with name: '" + groupName + "' exists!");
+            Messager.sendWarningMessage(sender, "No group with name: '" + groupName + "' exists!");
             return;
         }
         ScopeMeta scopeMeta = worldManager.scopeManager.getScopeByName(groupName);
@@ -76,7 +74,7 @@ public class GameRuleConfigCommand implements SubCommand {
         String gameRuleName = args[2];
         GameRule<?> gameRule = getGameRuleByName(gameRuleName);
         if (gameRule == null) {
-            sender.sendMessage(ChatColor.RED + "No game rule with name: '" + gameRuleName + "' exists!");
+            Messager.sendWarningMessage(sender, "No game rule with name: '" + gameRuleName + "' exists!");
             return;
         }
 
@@ -86,7 +84,7 @@ public class GameRuleConfigCommand implements SubCommand {
             getGameRuleCommand(sender, scopeMeta, gameRule);
         } else if (action.equalsIgnoreCase("set")) {
             if (args.length < 4) {
-                sender.sendMessage(ChatColor.RED + "You must specify a value for the GameRule!");
+                Messager.sendWarningMessage(sender, "You must specify a value for the GameRule!");
                 return;
             }
 
@@ -101,7 +99,7 @@ public class GameRuleConfigCommand implements SubCommand {
 
             setGameRuleCommand(sender, scopeMeta, gameRule, value);
         } else {
-            sender.sendMessage(ChatColor.RED + "Your subcommand must be 'get' or 'set'!");
+            Messager.sendWarningMessage(sender, "Your subcommand must be 'get' or 'set'!");
         }
     }
 
@@ -109,30 +107,35 @@ public class GameRuleConfigCommand implements SubCommand {
     public <T> void setGameRuleCommand(CommandSender sender, ScopeMeta scopeMeta, GameRule<?> gameRule, Object value) {
         Set<WorldMeta> worldMetas = scopeMeta.getWorlds();
         if (worldMetas.isEmpty()) {
-            sender.sendMessage(ChatColor.RED + "No worlds exist in '" + scopeMeta.getName() + "', so no game rules exist.");
+            Messager.sendWarningMessage(sender, "No worlds exist in '" + scopeMeta.getName() + "', so no game rules exist.");
             return;
         }
 
         // Cast to correct type
-        sender.sendMessage(ChatColor.YELLOW + "Setting GameRule '" + gameRule.getKey() + "' = " + value + " for all worlds in scope '" + scopeMeta.getName() + "'.");
+        Messager.sendSuccessMessage(sender, "Setting GameRule '" + gameRule.getKey() + "' = " + value + " for all worlds in scope '" + scopeMeta.getName() + "'.");
         GameRule<T> typed = (GameRule<T>) gameRule;
         T castValue = (T) value;
 
         // Update GameRules
         for (WorldMeta worldMeta : worldMetas) {
+            if (worldMeta.isUnloading) {
+                Messager.sendWarningMessage(sender, "Could not update gamerule in world: '" + worldMeta.getWorldID() + "', because it is currently being unloaded!");
+                return;
+            }
+
             if (!worldMeta.isLoaded()) {
                 boolean didLoad = worldManager.loadWorldFromMetaData(worldMeta);
                 if (!didLoad) {
-                    sender.sendMessage(ChatColor.RED + "Could not load world: '" + worldMeta.getWorldID() + "', so it's gamerule could not be updated!");
+                    Messager.sendWarningMessage(sender, "Could not load world: '" + worldMeta.getWorldID() + "', so it's gamerule could not be updated!");
                     continue;
                 }
             }
             try {
                 World world = worldMeta.getWorld();
                 world.setGameRule(typed, castValue);
-                sender.sendMessage(ChatColor.GOLD + "- World: '" + world.getName() + "' set to " + value + ".");
+                Messager.sendSuccessMessage(sender, "- World: '" + world.getName() + "' set to " + value + ".");
             } catch (IllegalArgumentException e) {
-                sender.sendMessage(ChatColor.RED + "Invalid value for this game rule!");
+                Messager.sendWarningMessage(sender, "Invalid value for this game rule!");
             }
         }
     }
@@ -140,21 +143,21 @@ public class GameRuleConfigCommand implements SubCommand {
     public void getGameRuleCommand(CommandSender sender, ScopeMeta scopeMeta, GameRule<?> gameRule) {
         Set<WorldMeta> worldMetas = scopeMeta.getWorlds();
         if (worldMetas.isEmpty()) {
-            sender.sendMessage(ChatColor.RED + "No worlds exist in '" + scopeMeta.getName() + "', so no game rules exist.");
+            Messager.sendWarningMessage(sender, "No worlds exist in '" + scopeMeta.getName() + "', so no game rules exist.");
             return;
         }
 
-        sender.sendMessage(ChatColor.GOLD + "GameRule '" + gameRule.getKey() + "' in group '" + scopeMeta.getName() + "':");
+        Messager.sendSuccessMessage(sender, "GameRule '" + gameRule.getKey() + "' in group '" + scopeMeta.getName() + "':");
         for (WorldMeta worldMeta : worldMetas) {
             World world = worldMeta.getWorld();
 
             if (world == null) {
-                sender.sendMessage(ChatColor.GRAY + "- " + worldMeta.getWorldID() + ": (world not loaded)");
+                Messager.messageSender(sender, "- " + worldMeta.getWorldID() + ": (world not loaded)", NamedTextColor.GRAY);
                 continue;
             }
 
             Object value = world.getGameRuleValue(gameRule);
-            sender.sendMessage(ChatColor.GOLD + "- " + world.getName() + ChatColor.GOLD + " = " + value);
+            Messager.sendSuccessMessage(sender, "- " + world.getName() + " = " + value);
         }
     }
 

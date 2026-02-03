@@ -1,15 +1,14 @@
 package org.gabooj.commands.group;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Difficulty;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
 import org.gabooj.scope.ScopeMeta;
 import org.gabooj.scope.SpawnLocation;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -18,9 +17,7 @@ import java.util.List;
 
 public class ConfigGroupCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
-    private final GroupCommandHandler commandHandler;
 
     public enum GroupConfigPolicy {
 
@@ -54,10 +51,8 @@ public class ConfigGroupCommand implements SubCommand {
 
     }
 
-    public ConfigGroupCommand(JavaPlugin plugin, WorldManager worldManager, GroupCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public ConfigGroupCommand(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -88,14 +83,14 @@ public class ConfigGroupCommand implements SubCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + description(sender));
+            Messager.sendInfoMessage(sender, description(sender));
             return;
         }
 
         // Parse group
         String groupName = args[1];
         if (!worldManager.scopeManager.doesScopeNameExist(groupName)) {
-            sender.sendMessage(ChatColor.RED + "No group with name: '" + groupName + "' exists!");
+            Messager.sendWarningMessage(sender, "No group with name: '" + groupName + "' exists!");
             return;
         }
         ScopeMeta scopeMeta = worldManager.scopeManager.getScopeByName(groupName);
@@ -103,7 +98,7 @@ public class ConfigGroupCommand implements SubCommand {
         // Parse config name
         String configName = args[2];
         if (ConfigGroupCommand.GroupConfigPolicy.fromName(configName) == null) {
-            sender.sendMessage(ChatColor.RED + "No config with name: '" + configName + "' exists!");
+            Messager.sendWarningMessage(sender, "No config with name: '" + configName + "' exists!");
             return;
         }
 
@@ -114,12 +109,12 @@ public class ConfigGroupCommand implements SubCommand {
         } else if(action.equalsIgnoreCase("set")) {
             handleSetCommand(sender, scopeMeta, configName, args);
         } else {
-            sender.sendMessage(ChatColor.RED + action + " was not a recognized subcommand. Your subcommand must be 'get' or 'set'.");
+            Messager.sendWarningMessage(sender, action + " was not a recognized subcommand. Your subcommand must be 'get' or 'set'.");
         }
     }
 
     public void handleGetCommand(CommandSender sender, ScopeMeta meta, String configName) {
-        String messageToSend = ChatColor.GOLD + "";
+        String messageToSend = "";
         switch (configName.toLowerCase()) {
             case "default" -> {
                 if (meta.getSpawnLocation().spawnWorldID == null) {
@@ -139,9 +134,12 @@ public class ConfigGroupCommand implements SubCommand {
                 SpawnLocation loc = meta.getSpawnLocation();
                 messageToSend += "Spawn Location: (" + loc.spawnX + ", " + loc.spawnY + ", " + loc.spawnZ + ") | Yaw: " + loc.spawnYaw + " Pitch: " + loc.spawnPitch + " in world: " + loc.spawnWorldID;
             }
-            default -> messageToSend = ChatColor.RED + "Unknown config name: " + configName;
+            default -> {
+                Messager.sendWarningMessage(sender, "Unknown config name: " + configName);
+                return;
+            }    
         }
-        sender.sendMessage(messageToSend);
+        Messager.sendInfoMessage(sender, messageToSend);
     }
 
     public void handleSetCommand(CommandSender sender, ScopeMeta meta, String configName, String[] args) {
@@ -156,7 +154,7 @@ public class ConfigGroupCommand implements SubCommand {
 
         // Handle configs that do have a value
         if (args.length < 4) {
-            sender.sendMessage(ChatColor.RED + "You must specify a value for your config name!");
+            Messager.sendWarningMessage(sender, "You must specify a value for your config name!");
             return;
         }
         String configValue = args[3];
@@ -176,7 +174,7 @@ public class ConfigGroupCommand implements SubCommand {
         } else if (configName.equalsIgnoreCase(GroupConfigPolicy.GAMEMODE.name)) {
             setGameModeInScope(sender, meta, configValue);
         } else {
-            sender.sendMessage(ChatColor.RED + "Unknown config name: " + configName);
+            Messager.sendWarningMessage(sender, "Unknown config name: " + configName);
         }
     }
 
@@ -185,9 +183,9 @@ public class ConfigGroupCommand implements SubCommand {
             GameMode gameMode = GameMode.valueOf(value.toUpperCase());
             meta.setGameMode(gameMode);
             worldManager.scopeManager.saveScopes();
-            sender.sendMessage(ChatColor.GOLD + "Set GameMode in scope: '" + meta.getName() + "' to " + gameMode + ".");
+            Messager.sendInfoMessage(sender, "Set GameMode in scope: '" + meta.getName() + "' to " + gameMode + ".");
         } catch (IllegalArgumentException e) {
-            sender.sendMessage(ChatColor.RED + "GameMode must be creative, survival, adventure, or spectator.");
+            Messager.sendWarningMessage(sender, "GameMode must be creative, survival, adventure, or spectator.");
         }
     }
 
@@ -195,7 +193,7 @@ public class ConfigGroupCommand implements SubCommand {
         boolean isVisible = Boolean.parseBoolean(value);
         meta.setVisible(isVisible);
         worldManager.scopeManager.saveScopes();
-        sender.sendMessage(ChatColor.GOLD + "Set visibility in scope: '" + meta.getName() + "' to " + isVisible + ".");
+        Messager.sendInfoMessage(sender, "Set visibility in scope: '" + meta.getName() + "' to " + isVisible + ".");
     }
 
     private void setDifficultyInScope(CommandSender sender, ScopeMeta meta, String value) {
@@ -203,9 +201,9 @@ public class ConfigGroupCommand implements SubCommand {
             Difficulty difficulty = Difficulty.valueOf(value.toUpperCase());
             meta.setDifficulty(difficulty);
             worldManager.scopeManager.saveScopes();
-            sender.sendMessage(ChatColor.GOLD + "Set difficulty in scope: '" + meta.getName() + "' to " + difficulty + ".");
+            Messager.sendInfoMessage(sender, "Set difficulty in scope: '" + meta.getName() + "' to " + difficulty + ".");
         } catch (IllegalArgumentException e) {
-            sender.sendMessage(ChatColor.RED + "Difficulty must be peaceful, easy, normal, or hard.");
+            Messager.sendWarningMessage(sender, "Difficulty must be peaceful, easy, normal, or hard.");
         }
     }
 
@@ -213,14 +211,14 @@ public class ConfigGroupCommand implements SubCommand {
         boolean doHardcore = Boolean.parseBoolean(value);
         meta.setDoHardcore(doHardcore);
         worldManager.scopeManager.saveScopes();
-        sender.sendMessage(ChatColor.GOLD + "Set do hardcore in scope: '" + meta.getName() + "' to " + doHardcore + ".");
+        Messager.sendInfoMessage(sender, "Set do hardcore in scope: '" + meta.getName() + "' to " + doHardcore + ".");
     }
 
     private void setForceSpawnInScope(CommandSender sender, ScopeMeta meta, String value) {
         boolean forceSpawn = Boolean.parseBoolean(value);
         meta.getSpawnLocation().doForceSpawn = forceSpawn;
         worldManager.scopeManager.saveScopes();
-        sender.sendMessage(ChatColor.GOLD + "Set force spawn in scope: '" + meta.getName() + "' to " + forceSpawn + ".");
+        Messager.sendInfoMessage(sender, "Set force spawn in scope: '" + meta.getName() + "' to " + forceSpawn + ".");
     }
 
     private void setForceDefaultWorld(CommandSender sender, String value) {
@@ -230,7 +228,13 @@ public class ConfigGroupCommand implements SubCommand {
             // Ensure that spawn exists in the default world
             WorldMeta defaultWorldMeta = worldManager.getDefaultScopeWorld();
             if (defaultWorldMeta == null) {
-                sender.sendMessage(ChatColor.DARK_RED + "The current default world for the server: '" + worldManager.scopeManager.defaultScopeID + "' does not have a spawn location. Set a spawn location before you enable ForceDefaultWorld!");
+                Messager.sendSevereWarningMessage(sender, "The current default world for the server: '" + worldManager.scopeManager.defaultScopeID + "' does not have a spawn location. Set a spawn location before you enable ForceDefaultWorld!");
+                return;
+            }
+
+            // Ensure that new default world is not being unloaded
+            if (defaultWorldMeta.isUnloading) {
+                Messager.sendWarningMessage(sender, "That world is currently being unloaded! Try again in 30 seconds.");
                 return;
             }
 
@@ -238,7 +242,7 @@ public class ConfigGroupCommand implements SubCommand {
             if (!defaultWorldMeta.isLoaded()) {
                 boolean didLoadWorld = worldManager.loadWorldFromMetaData(defaultWorldMeta);
                 if (!didLoadWorld) {
-                    sender.sendMessage(ChatColor.DARK_RED + "For some reason, the default world for that scope could not be loaded, so it could not be set as the default world.");
+                    Messager.sendSevereWarningMessage(sender, "For some reason, the default world for that scope could not be loaded, so it could not be set as the default world.");
                     return;
                 }
             }
@@ -246,27 +250,27 @@ public class ConfigGroupCommand implements SubCommand {
         }
         worldManager.scopeManager.forceDefaultScope = forceDefaultScope;
         worldManager.saveWorldMetaDatas();
-        sender.sendMessage(ChatColor.GOLD + "Set force default world to " + forceDefaultScope + ".");
+        Messager.sendInfoMessage(sender, "Set force default world to " + forceDefaultScope + ".");
     }
 
     private void setScopeSpawn(CommandSender sender, ScopeMeta meta) {
         // Ensure that player is using this world
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + "You must be a player to execute this command!");
+            Messager.sendWarningMessage(sender, "You must be a player to execute this command!");
             return;
         }
 
         // Ensure that the current world is in the scope
         WorldMeta worldMetaToUse = worldManager.getWorldMetaByID(player.getWorld().getName());
         if (!meta.getWorlds().contains(worldMetaToUse)) {
-            sender.sendMessage(ChatColor.RED + "You must be in a world of the group: '" + meta.getName() + "' to update it's spawn location!");
+            Messager.sendWarningMessage(sender, "You must be in a world of the group: '" + meta.getName() + "' to update it's spawn location!");
             return;
         }
 
         Location loc = player.getLocation();
         SpawnLocation spawnLocation = new SpawnLocation(meta.getSpawnLocation().doForceSpawn, loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), loc.getWorld().getName());
         meta.setSpawnLocation(spawnLocation);
-        player.sendMessage(ChatColor.GOLD + "Set spawn to your current location and orientation for: " + meta.getName() + ".");
+        Messager.sendInfoMessage(sender, "Set spawn to your current location and orientation for: " + meta.getName() + ".");
         worldManager.scopeManager.saveScopes();
     }
 
@@ -274,36 +278,41 @@ public class ConfigGroupCommand implements SubCommand {
         // If no spawn is set for the scope, tell the player
         SpawnLocation loc = meta.getSpawnLocation();
         if (loc.spawnWorldID == null) {
-            sender.sendMessage(ChatColor.RED + "There is no default spawn location for group: " + meta.getName() + ". There needs to be one to set the server's default spawn to here!");
+            Messager.sendWarningMessage(sender, "There is no default spawn location for group: " + meta.getName() + ". There needs to be one to set the server's default spawn to here!");
             return;
         }
 
         // Load world if unloaded
         if (worldManager.scopeManager.forceDefaultScope) {
             WorldMeta spawnScopeMeta = worldManager.getWorldMetaByID(loc.spawnWorldID);
-            spawnScopeMeta.setDoAutoLoad(true);
+            if (spawnScopeMeta.isUnloading) {
+                Messager.sendWarningMessage(sender, "The soon-to-be default world in scope: '" + meta.getName() + "' is currently being unloaded. Try this command again in 30 seconds.");
+                return;
+            }
+
             if (!spawnScopeMeta.isLoaded()) {
                 boolean didWorldLoad = worldManager.loadWorldFromMetaData(spawnScopeMeta);
                 if (!didWorldLoad) {
-                    sender.sendMessage(ChatColor.RED + "For some reason, the soon-to-be default world in scope: '" + meta.getName() + "' (World: " + spawnScopeMeta.getWorldID() + ") could not be loaded, so the default world could not be changed to this world!");
+                    Messager.sendSevereWarningMessage(sender, "For some reason, the soon-to-be default world in scope: '" + meta.getName() + "' (World: " + spawnScopeMeta.getWorldID() + ") could not be loaded, so the default world could not be changed to this world!");
                     return;
                 }
             }
+            spawnScopeMeta.setDoAutoLoad(true);
         }
 
         // Set default scope
         worldManager.scopeManager.defaultScopeID = meta.getScopeId();
         worldManager.saveWorldMetaDatas();
-        sender.sendMessage(ChatColor.GOLD + "Updated default scope to '" + meta.getName() + "'.");
+        Messager.sendInfoMessage(sender, "Updated default scope to '" + meta.getName() + "'.");
     }
 
     private void setName(CommandSender sender, ScopeMeta meta, String configName, String value) {
         if (worldManager.isInvalidName(value)) {
-            sender.sendMessage(ChatColor.RED + "That name is already taken!");
+            Messager.sendWarningMessage(sender, "That name is already taken!");
         } else {
             meta.setName(value);
             worldManager.scopeManager.saveScopes();
-            sender.sendMessage(ChatColor.GOLD + "Updated scope: '" + meta.getName() + "' with new name: " + value);
+            Messager.sendInfoMessage(sender, "Updated scope: '" + meta.getName() + "' with new name: " + value);
         }
     }
 

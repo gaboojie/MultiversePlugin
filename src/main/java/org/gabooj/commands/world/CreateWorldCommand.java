@@ -1,14 +1,9 @@
 package org.gabooj.commands.world;
 
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.WorldType;
+import org.bukkit.*;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.SubCommand;
-import org.gabooj.scope.ScopeMeta;
-import org.gabooj.scope.SpawnLocation;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -19,7 +14,6 @@ import java.util.Set;
 
 public class CreateWorldCommand implements SubCommand {
 
-    private final JavaPlugin plugin;
     private final WorldManager worldManager;
     private final WorldCommandHandler commandHandler;
 
@@ -67,8 +61,7 @@ public class CreateWorldCommand implements SubCommand {
         public FlagArguments() {}
     }
 
-    public CreateWorldCommand(JavaPlugin plugin, WorldManager worldManager, WorldCommandHandler commandHandler) {
-        this.plugin = plugin;
+    public CreateWorldCommand(WorldManager worldManager, WorldCommandHandler commandHandler) {
         this.worldManager = worldManager;
         this.commandHandler = commandHandler;
     }
@@ -113,21 +106,21 @@ public class CreateWorldCommand implements SubCommand {
 
         // Ensure that world ID does not already exist
         if (worldManager.isInvalidName(worldID)) {
-            sender.sendMessage(ChatColor.RED + "You cannot create world '" + worldID + "' as that world ID is already taken with another world or group!");
+            Messager.sendWarningMessage(sender, "You cannot create world '" + worldID + "' as that world ID is already taken with another world or group!");
             return;
         }
 
         // Ensure that world ID is not a command
         for (String command : commandHandler.commands.keySet()) {
             if (command.equalsIgnoreCase(worldID)) {
-                sender.sendMessage(ChatColor.RED + "You cannot create world '" + worldID + "' as that world name is a command under /world.");
+                Messager.sendWarningMessage(sender, "You cannot create world '" + worldID + "' as that world name is a command under /world.");
                 return;
             }
         }
 
         // Ensure that world does not exist
         if (worldManager.doesWorldFileExist(worldID)) {
-            sender.sendMessage(ChatColor.RED + "A world folder by the name '" + worldID + "' already exists! If you're trying to import a new world, use /world import!");
+            Messager.sendWarningMessage(sender, "A world folder by the name '" + worldID + "' already exists! If you're trying to import a new world, use /world import!");
             return;
         }
 
@@ -136,17 +129,17 @@ public class CreateWorldCommand implements SubCommand {
         try {
             parseFlags(flagArguments, args, 1);
         } catch (IllegalArgumentException e) {
-            sender.sendMessage(ChatColor.RED + e.getMessage());
+            Messager.sendWarningMessage(sender, e.getMessage());
             return;
         }
 
         // If invalid types specified, let the player know and quit
         if (flagArguments.environment != World.Environment.NORMAL && flagArguments.worldType != WorldType.NORMAL) {
-            sender.sendMessage(ChatColor.RED + "You can only specify a NORMAL world type with a different environment (i.e END/NETHER).");
+            Messager.sendWarningMessage(sender, "You can only specify a NORMAL world type with a different environment (i.e END/NETHER).");
             return;
         }
         if (flagArguments.generatorType == WorldMeta.GeneratorType.VOID && flagArguments.worldType != WorldType.NORMAL) {
-            sender.sendMessage(ChatColor.RED + "You can only specify a NORMAL world type with a void generator (i.e. not AMPLIFIED/LARGE BIOMES/FLAT).");
+            Messager.sendWarningMessage(sender, "You can only specify a NORMAL world type with a void generator (i.e. not AMPLIFIED/LARGE BIOMES/FLAT).");
             return;
         }
 
@@ -159,14 +152,29 @@ public class CreateWorldCommand implements SubCommand {
         // Create new world
         boolean didWorldLoad = worldManager.loadWorldFromMetaData(meta);
         if (didWorldLoad) {
-            sender.sendMessage(ChatColor.GOLD + "Successfully created new world: " + worldID + ".");
+            Messager.sendSuccessMessage(sender, "Successfully created new world: " + worldID + ".");
             worldManager.worldMetas.put(worldID, meta);
 
             // Create new scope for this world
             worldManager.scopeManager.createScope(worldID);
+
+            // Create spawn platform for void worlds
+            if (meta.getGeneratorType() == WorldMeta.GeneratorType.VOID) {
+                setUpVoidWorld(meta);
+            }
         } else {
-            sender.sendMessage(ChatColor.RED + "Uh-oh! Could not create new world: '" + meta.getWorldID() + "'.");
+            Messager.sendWarningMessage(sender, "Uh-oh! Could not create new world: '" + meta.getWorldID() + "'.");
         }
+    }
+
+    public void setUpVoidWorld(WorldMeta worldMeta) {
+        World world = worldMeta.getWorld();
+        for (int x = -2; x <= 2; x++) {
+            for (int z = -2; z <= 2; z++) {
+                world.getBlockAt(x, 63, z).setType(Material.BEDROCK);
+            }
+        }
+        world.setSpawnLocation(0, 67, 0);
     }
 
     @Override

@@ -9,6 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.players.PlayerInventorySerializer;
 import org.gabooj.players.PlayerLocationSerializer;
 import org.gabooj.players.PlayerMiscSerializer;
+import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
 
@@ -45,7 +46,7 @@ public class ScopeManager {
         if (meta.getScopeId().equals(defaultScopeID)) {
             defaultScopeID = null;
             calculateNewDefaultSpawn();
-            plugin.getServer().broadcastMessage(ChatColor.RED + "Reset default spawn to '" + defaultScopeID  + "'.");
+            Messager.broadcastWarningMessage(plugin.getServer(), "Reset default spawn to '" + defaultScopeID  + "'.");
         }
 
         // Remove from map
@@ -125,7 +126,7 @@ public class ScopeManager {
 
         // Ensure that world is loaded
         WorldMeta worldMeta = worldManager.getWorldMetaByID(worldID);
-        if (worldMeta == null) return null;
+        if (worldMeta == null || worldMeta.isUnloading) return null;
         if (!worldMeta.isLoaded()) {
             boolean didLoad = worldManager.loadWorldFromMetaData(worldMeta);
             if (!didLoad) return null;
@@ -134,7 +135,7 @@ public class ScopeManager {
 
         // Ensure that bed still exists
         if (!Tag.BEDS.isTagged(loc.getBlock().getType())) {
-            player.sendMessage(ChatColor.RED + "Your bed in '" + meta.getName() + "' was destroyed!");
+            Messager.sendWarningMessage(player, "Your bed in '" + meta.getName() + "' was destroyed!");
             PlayerMiscSerializer.clearPlayerBedLocInScope(player, meta, plugin);
             return null;
         }
@@ -157,9 +158,9 @@ public class ScopeManager {
     public Location getSpawnLocationOfScope(ScopeMeta meta) {
         SpawnLocation spawnLocation = meta.getSpawnLocation();
         if (spawnLocation.spawnWorldID == null) return null;
-        World world = Bukkit.getWorld(spawnLocation.spawnWorldID);
-        if (world == null) return null;
-        return new Location(world, spawnLocation.spawnX, spawnLocation.spawnY, spawnLocation.spawnZ, spawnLocation.spawnYaw, spawnLocation.spawnPitch);
+        WorldMeta worldMeta = worldManager.getWorldMetaByID(spawnLocation.spawnWorldID);
+        if (!worldMeta.isLoaded() || worldMeta.isUnloading) return null;
+        return new Location(worldMeta.getWorld(), spawnLocation.spawnX, spawnLocation.spawnY, spawnLocation.spawnZ, spawnLocation.spawnYaw, spawnLocation.spawnPitch);
     }
 
     public ScopeMeta getCurrentPlayerScope(Player player) {
@@ -293,13 +294,13 @@ public class ScopeManager {
                     String worldId = w.getString("world");
                     if (worldId == null) continue; // skip invalid
 
-                    Warp warp = new Warp(worldId,
+                    Warp warp = new Warp(warpName,
                             w.getDouble("x"),
                             w.getDouble("y"),
                             w.getDouble("z"),
                             (float) w.getDouble("yaw"),
                             (float) w.getDouble("pitch"),
-                            warpName
+                            worldId
                     );
 
                     scope.getWarps().add(warp);
