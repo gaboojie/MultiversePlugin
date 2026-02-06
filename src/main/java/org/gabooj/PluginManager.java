@@ -4,10 +4,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.commands.afk.AfkCommand;
 import org.gabooj.commands.chat.ChatCommandHandler;
 import org.gabooj.commands.group.GroupCommandHandler;
+import org.gabooj.commands.protection.ClaimCommand;
 import org.gabooj.commands.tpa.TpaCommand;
 import org.gabooj.commands.warp.WarpCommandHandler;
 import org.gabooj.commands.world.WorldCommandHandler;
 import org.gabooj.players.chat.ChatManager;
+import org.gabooj.protection.LandProtectionManager;
 import org.gabooj.services.PlayerMoveService;
 import org.gabooj.worlds.WorldManager;
 
@@ -20,10 +22,12 @@ public class PluginManager extends JavaPlugin {
     public ChatCommandHandler chatCommandHandler;
     public AfkCommand afkCommand;
     public TpaCommand tpaCommand;
+    public ClaimCommand claimCommand;
 
     // Global managers
     public WorldManager worldManager;
     public ChatManager chatManager;
+    public LandProtectionManager landProtectionManager;
 
     @Override
     public void onEnable() {
@@ -35,6 +39,10 @@ public class PluginManager extends JavaPlugin {
         worldManager = new WorldManager(this);
         worldManager.onEnable();
 
+        // Instantiate protection manager
+        landProtectionManager = new LandProtectionManager(this, worldManager);
+        landProtectionManager.onEnable();
+
         // Register command handlers
         worldCommandHandler = new WorldCommandHandler(this, worldManager);
         groupCommandHandler = new GroupCommandHandler(this, worldManager);
@@ -44,6 +52,7 @@ public class PluginManager extends JavaPlugin {
         // Register individual commands
         afkCommand = new AfkCommand(this);
         tpaCommand = new TpaCommand(this);
+        claimCommand = new ClaimCommand(this, landProtectionManager);
 
         // Register services
         PlayerMoveService.addMoveScheduler(this, worldManager);
@@ -51,6 +60,7 @@ public class PluginManager extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        landProtectionManager.onDisable();
         worldManager.onDisable();
         chatManager.onDisable();
         PlayerMoveService.onDisable();
