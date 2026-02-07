@@ -386,4 +386,11 @@ public class ScopeManager {
         }
     }
 
+    public boolean doPlayerScopesMatch(Player player1, Player player2) {
+        WorldMeta meta1 = worldManager.getWorldMetaByID(player1.getWorld().getName());
+        WorldMeta meta2 = worldManager.getWorldMetaByID(player2.getWorld().getName());
+
+        return meta1.getScopeID().equals(meta2.getScopeID());
+    }
+
 }

@@ -3,9 +3,11 @@ package org.gabooj.commands.world;
 import org.bukkit.command.CommandSender;
 import org.gabooj.commands.SubCommand;
 import org.gabooj.scope.ScopeMeta;
-import org.gabooj.utils.Messager;
 import org.gabooj.worlds.WorldManager;
 import org.gabooj.worlds.WorldMeta;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.util.List;
 
@@ -39,32 +41,42 @@ public class StatusCommand implements SubCommand {
 
     @Override
     public String description(CommandSender sender) {
-        return getStatusOfWorlds(sender);
+        sender.sendMessage(getStatusOfWorldsComponent(sender));
+        return null;
     }
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        Messager.sendInfoMessage(sender, getStatusOfWorlds(sender));
+        sender.sendMessage(getStatusOfWorldsComponent(sender));
     }
 
-    public String getStatusOfWorlds(CommandSender sender) {
-        StringBuilder info = new StringBuilder("World Statuses:\n");
+    public Component getStatusOfWorldsComponent(CommandSender sender) {
+        Component allText = Component.text("World Statuses:\n", NamedTextColor.GOLD);
         for (ScopeMeta scopeMeta : worldManager.scopeManager.getScopes().values()) {
             if (scopeMeta.getWorlds().isEmpty()) continue;
-            // Add info for each world in scope
-            String scopeToAppend = "Group: '" + scopeMeta.getName() + "':\n - ";
+
+            // Add group component
+            String groupText = "Group: '" + scopeMeta.getName() + "':\n -";
+            Component groupComponent = Component.text(groupText, NamedTextColor.GOLD);
+
+            // Add each world
             for (WorldMeta worldMeta : scopeMeta.getWorlds()) {
-                scopeToAppend += worldMeta.getWorldID() + ", ";
+                groupComponent.append(getWorldStatus(worldMeta));
             }
-            scopeToAppend = scopeToAppend.substring(0, scopeToAppend.length()-2);
-            info.append(scopeToAppend).append("\n");
+            groupComponent.append(Component.text("\n"));
+            allText.append(groupComponent);
         }
 
-        // Remove trailing new line
-        if (info.charAt(info.length()-1) == '\n') {
-            info.deleteCharAt(info.length()-1);
-        }
-        return info.toString();
+        // Add information text;
+        allText.append(Component.text("Online", NamedTextColor.GREEN));
+        allText.append(Component.text("| Offline", NamedTextColor.RED));
+        
+        return allText;
+    }
+
+    public Component getWorldStatus(WorldMeta meta) {
+        NamedTextColor worldColor = (meta.isLoaded() && !meta.isUnloading) ? NamedTextColor.GREEN : NamedTextColor.RED;
+        return Component.text(" " + meta.getWorldID(), worldColor);
     }
 
     @Override

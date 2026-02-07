@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.gabooj.services.PlayerMoveService;
 import org.gabooj.utils.Messager;
+import org.gabooj.worlds.WorldManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,8 +27,11 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
     private static final long REQUEST_TIMEOUT_MS = 120_000L;
 
     private final Map<UUID, LinkedHashMap<UUID, TeleportRequest>> pendingRequestsByTarget = new ConcurrentHashMap<>();
+    private final WorldManager worldManager;
 
-    public TpaCommand(JavaPlugin plugin) {
+    public TpaCommand(JavaPlugin plugin, WorldManager worldManager) {
+        this.worldManager = worldManager;
+
         PluginCommand command = plugin.getCommand("tpa");
         if (command == null) {
             plugin.getLogger().warning("Command 'tpa' is not defined in plugin.yml");
@@ -150,6 +154,11 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
+        if (worldManager.scopeManager.doPlayerScopesMatch(requester, target)) {
+            Messager.sendWarningMessage(requester, "You cannot teleport to a player in a different world!");
+            return;
+        }
+
         UUID targetId = target.getUniqueId();
         pruneExpiredRequestsFor(targetId);
 
@@ -193,6 +202,12 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
         Player requester = Bukkit.getPlayer(request.requesterId());
         if (requester == null || !requester.isOnline()) {
             Messager.sendWarningMessage(target, request.requesterName() + " is no longer online.");
+            return;
+        }
+
+        if (worldManager.scopeManager.doPlayerScopesMatch(requester, target)) {
+            Messager.sendWarningMessage(target, "You cannot accept a teleport request from a player in a different world!");
+            Messager.sendWarningMessage(requester, "Your teleport request to " + target.getName() + " was cancelled, because they are in a different world!");
             return;
         }
 

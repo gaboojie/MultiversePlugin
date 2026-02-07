@@ -106,7 +106,9 @@ public class WorldCommandHandler implements CommandExecutor, TabCompleter {
 
         // Send description if not enough information given
         if (args.length == 1) {
-            Messager.sendInfoMessage(sender, sub.description(sender));
+            String description = sub.description(sender);
+            if (description == null) return true;
+            Messager.sendInfoMessage(sender, description);
             return true;
         }
 

@@ -26,3 +26,6 @@ commands:
   claim:
     description: Claim chunks to prevent griefing
     usage: /claim <on/off/info>
+  home:
+    description: Go to your home in a given world
+    usage: /home
