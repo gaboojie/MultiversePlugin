@@ -5,6 +5,7 @@ import org.gabooj.commands.afk.AfkCommand;
 import org.gabooj.commands.chat.ChatCommandHandler;
 import org.gabooj.commands.group.GroupCommandHandler;
 import org.gabooj.commands.home.HomeCommand;
+import org.gabooj.commands.mail.MailCommand;
 import org.gabooj.commands.protection.ClaimCommand;
 import org.gabooj.commands.tpa.TpaCommand;
 import org.gabooj.commands.warp.WarpCommandHandler;
@@ -25,6 +26,7 @@ public class PluginManager extends JavaPlugin {
     public TpaCommand tpaCommand;
     public ClaimCommand claimCommand;
     public HomeCommand homeCommand;
+    public MailCommand mailCommand;
 
     // Global managers
     public WorldManager worldManager;
@@ -56,6 +58,7 @@ public class PluginManager extends JavaPlugin {
         tpaCommand = new TpaCommand(this, worldManager);
         claimCommand = new ClaimCommand(this, landProtectionManager);
         homeCommand = new HomeCommand(this, worldManager);
+        mailCommand = new MailCommand(this);
 
         // Register services
         PlayerMoveService.addMoveScheduler(this, worldManager);

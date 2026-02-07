@@ -14,17 +14,22 @@ import org.gabooj.utils.Messager;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public class ChatManager {
 
     private static final Map<UUID, ChatSettings> playerChatSettings = new HashMap<>();
+    public static HashMap<UUID, List<String>> playerMail = new HashMap<>();
 
     private static JavaPlugin plugin;
     private static File file;
     private static FileConfiguration config;
+    private static File playerMailFile;
+    private static FileConfiguration playerMailConfig;
 
     public ChatManager(JavaPlugin p) {
         plugin = p;
@@ -33,6 +38,7 @@ public class ChatManager {
     public void onEnable() {
         ConfigurationSerialization.registerClass(ChatSettings.class);
         loadChatSettings();
+        loadPlayerMail();
 
         // Register listener
         plugin.getServer().getPluginManager().registerEvents(new ChatListener(), plugin);
@@ -40,6 +46,7 @@ public class ChatManager {
 
     public void onDisable() {
         saveChatSettings();
+        savePlayerMail();
     }
 
     public static ChatSettings getChatSettings(UUID uuid) {
@@ -145,6 +152,58 @@ public class ChatManager {
             config.save(file);
         } catch (IOException ignored) {
             Messager.broadcastWarningMessage(plugin.getServer(), "Could not save chatSettings file: chatSettings.yml!");
+        }
+    }
+
+    public void loadPlayerMail() {
+        playerMailFile = new File(plugin.getDataFolder(), "playerMail.yml");
+        if (!playerMailFile.exists()) {
+            playerMailFile.getParentFile().mkdirs();
+            try {
+                playerMailFile.createNewFile();
+            } catch (IOException e) {
+                Messager.broadcastWarningMessage(plugin.getServer(), "Could not create the playerMail.yml file!");
+                return;
+            }
+        }
+
+        playerMailConfig = YamlConfiguration.loadConfiguration(playerMailFile);
+
+        playerMail.clear();
+        ConfigurationSection section = playerMailConfig.getConfigurationSection("players");
+        if (section == null) return;
+
+        for (String key : section.getKeys(false)) {
+            UUID uuid;
+            try {
+                uuid = UUID.fromString(key);
+            } catch (IllegalArgumentException ignored) {
+                Messager.broadcastWarningMessage(plugin.getServer(), "Could not load an entry in player mail: " + key);
+                continue;
+            }
+
+            List<String> mail = section.getStringList(key);
+            if (!mail.isEmpty()) {
+                playerMail.put(uuid, new ArrayList<>(mail));
+            }
+        }
+    }
+
+    public void savePlayerMail() {
+        playerMailFile = new File(plugin.getDataFolder(), "playerMail.yml");
+        playerMailConfig = new YamlConfiguration();
+
+        for (var entry : playerMail.entrySet()) {
+            List<String> mail = entry.getValue();
+            if (mail == null || mail.isEmpty()) continue;
+            playerMailConfig.set("players." + entry.getKey(), mail);
+        }
+
+        try {
+            if (!playerMailFile.getParentFile().exists()) playerMailFile.getParentFile().mkdirs();
+            playerMailConfig.save(playerMailFile);
+        } catch (IOException ignored) {
+            Messager.broadcastWarningMessage(plugin.getServer(), "Could not save player mail file: playerMail.yml!");
         }
     }
 

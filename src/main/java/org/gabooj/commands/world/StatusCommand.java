@@ -61,15 +61,15 @@ public class StatusCommand implements SubCommand {
 
             // Add each world
             for (WorldMeta worldMeta : scopeMeta.getWorlds()) {
-                groupComponent.append(getWorldStatus(worldMeta));
+                groupComponent = groupComponent.append(getWorldStatus(worldMeta));
             }
-            groupComponent.append(Component.text("\n"));
-            allText.append(groupComponent);
+            groupComponent = groupComponent.append(Component.text("\n"));
+            allText = allText.append(groupComponent);
         }
 
         // Add information text;
-        allText.append(Component.text("Online", NamedTextColor.GREEN));
-        allText.append(Component.text("| Offline", NamedTextColor.RED));
+        allText = allText.append(Component.text("Online", NamedTextColor.GREEN));
+        allText = allText.append(Component.text(" Offline", NamedTextColor.RED));
         
         return allText;
     }
