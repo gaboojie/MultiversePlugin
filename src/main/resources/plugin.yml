@@ -29,3 +29,10 @@ commands:
   home:
     description: Go to your home in a given world
     usage: /home
+  hand:
+    description: Show the item in your hand
+    usage: /hand
+    aliases: [showhand]
+  mail:
+    description: Show the mail
+    usage: /mail

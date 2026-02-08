@@ -7,9 +7,12 @@ import org.gabooj.commands.group.GroupCommandHandler;
 import org.gabooj.commands.home.HomeCommand;
 import org.gabooj.commands.mail.MailCommand;
 import org.gabooj.commands.protection.ClaimCommand;
+import org.gabooj.commands.showHand.ShowHandCommand;
 import org.gabooj.commands.tpa.TpaCommand;
 import org.gabooj.commands.warp.WarpCommandHandler;
 import org.gabooj.commands.world.WorldCommandHandler;
+import org.gabooj.items.builderWand.BuilderWandModule;
+import org.gabooj.items.treeFeller.TreeFellerModule;
 import org.gabooj.players.chat.ChatManager;
 import org.gabooj.protection.LandProtectionManager;
 import org.gabooj.services.PlayerMoveService;
@@ -27,11 +30,16 @@ public class PluginManager extends JavaPlugin {
     public ClaimCommand claimCommand;
     public HomeCommand homeCommand;
     public MailCommand mailCommand;
+    public ShowHandCommand showHandCommand;
 
     // Global managers
     public WorldManager worldManager;
     public ChatManager chatManager;
     public LandProtectionManager landProtectionManager;
+
+    // Items
+    public BuilderWandModule builderWandModule;
+    public TreeFellerModule treeFellerModule;
 
     @Override
     public void onEnable() {
@@ -59,13 +67,22 @@ public class PluginManager extends JavaPlugin {
         claimCommand = new ClaimCommand(this, landProtectionManager);
         homeCommand = new HomeCommand(this, worldManager);
         mailCommand = new MailCommand(this);
+        showHandCommand = new ShowHandCommand(this);
 
         // Register services
         PlayerMoveService.addMoveScheduler(this, worldManager);
+
+        // Register items
+        builderWandModule = new BuilderWandModule(this);
+        builderWandModule.enable();
+        treeFellerModule = new TreeFellerModule(this);
+        treeFellerModule.enable();
     }
 
     @Override
     public void onDisable() {
+        builderWandModule.disable();
+        treeFellerModule.disable();
         landProtectionManager.onDisable();
         worldManager.onDisable();
         chatManager.onDisable();

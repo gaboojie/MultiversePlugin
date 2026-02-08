@@ -65,7 +65,7 @@ public class MailCommand implements CommandExecutor, TabCompleter {
             for (int i = 0; i < mail.size(); i++) {
                 to_send.append((i + 1)).append(". ").append(mail.get(i)).append("\n");
             }
-            Messager.sendInfoMessage(player, to_send.toString());
+            Messager.sendInfoMessage(player, to_send.substring(0, to_send.length()-2));
         }
     }
 
